@@ -344,6 +344,10 @@ internal class SpaceTradersApp : BackgroundService
                                     {
                                         //need to dock
                                         await DockShip(ship);
+                                        if (DateTime.UtcNow.AddSeconds(2) < nextActionTime)
+                                        {
+                                            nextActionTime = DateTime.UtcNow.AddSeconds(2);
+                                        }
                                     }
                                     else
                                     {
@@ -379,7 +383,6 @@ internal class SpaceTradersApp : BackgroundService
                                     }
                                     else
                                     {
-
                                         await NavigateShip(ship, destination);
                                         _logger.LogInformation("Ship {shipSymbol} going to sell cargo at {destinationSymbol}. Eta: {shipNavRouteArrival}", ship.Symbol, destination.Symbol, ship.Nav.Route?.Arrival);
 
@@ -400,7 +403,6 @@ internal class SpaceTradersApp : BackgroundService
                 await Task.Delay(timeToWait, cancellationToken);
             }
         }
-
     }
 
     private async Task GetShipNav(Ship ship)
@@ -456,11 +458,7 @@ internal class SpaceTradersApp : BackgroundService
     {
         DockOrbitResponseData orbitResponse = await _spaceTradersApiService.PostToStarTradersApi<DockOrbitResponseData>($"my/ships/{ship.Symbol}/orbit");
         ShipNavRoute? previousRoute = ship.Nav.Route;
-        ship.Nav = orbitResponse.Nav;
-        //if(ship.Nav.Route==null)
-        //{
-        //    ship.Nav.Route = previousRoute;
-        //}
+        ship.Nav = orbitResponse.Nav;        
     }
 
     private async Task RefuelShip(Ship ship)
@@ -512,8 +510,6 @@ internal class SpaceTradersApp : BackgroundService
             _logger.LogInformation("API Call Failure: {exception}", ex.Message);            
         }
     }
-
-
 
     private async Task GetShips()
     {
