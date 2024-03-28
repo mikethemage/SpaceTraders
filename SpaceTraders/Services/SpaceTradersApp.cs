@@ -1,12 +1,13 @@
-﻿using SpaceTraders.ApiModels.Models;
-using SpaceTraders.ApiModels.Requests;
-using SpaceTraders.ApiModels.Responses;
-using SpaceTraders.Exceptions;
+﻿using SpaceTraders.Exceptions;
 using SpaceTraders.Repositories;
 using SpaceTraders.Services;
 using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using SpaceTraders.Api.Responses.ResponseData;
+using SpaceTraders.Api.Responses.ResponseData.Errors;
+using SpaceTraders.Api.Requests;
+using SpaceTraders.Api.Models;
 
 internal class SpaceTradersApp : BackgroundService
 {
@@ -475,7 +476,7 @@ internal class SpaceTradersApp : BackgroundService
             }
             else
             {
-                _logger.LogInformation("Unknown error code:{errorCode} Message: \"{errorMessage}\".", ex.ErrorResponseData.Code, ex.ErrorResponseData.Message);
+                _logger.LogInformation("Unknown error code:{errorCode} Message: \"{errorMessage}\" Payload: {errorPayload}.", ex.ErrorResponseData.Code, ex.ErrorResponseData.Message, ex.ErrorResponseData.ErrorText);
             }
         }
 

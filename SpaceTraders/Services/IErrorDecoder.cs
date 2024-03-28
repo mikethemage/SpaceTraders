@@ -1,4 +1,4 @@
-﻿using SpaceTraders.ApiModels.Responses;
+﻿using SpaceTraders.Api.Responses.ResponseData;
 
 namespace SpaceTraders.Services;
 internal interface IErrorDecoder

@@ -1,4 +1,4 @@
-﻿using SpaceTraders.ApiModels.Models;
+﻿using SpaceTraders.Api.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;

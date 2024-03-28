@@ -1,4 +1,4 @@
-﻿using SpaceTraders.ApiModels.Models;
+﻿using SpaceTraders.Api.Models;
 
 namespace SpaceTraders.Repositories;
 internal interface IAgentRepository

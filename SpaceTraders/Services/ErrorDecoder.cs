@@ -1,10 +1,7 @@
-﻿using SpaceTraders.ApiModels.Responses;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using SpaceTraders.Api.Responses;
+using SpaceTraders.Api.Responses.ResponseData;
+using SpaceTraders.Api.Responses.ResponseData.Errors;
 using System.Text.Json;
-using System.Threading.Tasks;
 
 namespace SpaceTraders.Services;
 internal class ErrorDecoder : IErrorDecoder
@@ -20,18 +17,18 @@ internal class ErrorDecoder : IErrorDecoder
             {               
                 if (statusCode == _marketTradeNotSoldError)
                 {
-                    ErrorResponse<MarketTradeNotSoldError>? errorResponse = JsonSerializer.Deserialize<ErrorResponse<MarketTradeNotSoldError>>(jsonResponse,new JsonSerializerOptions { PropertyNameCaseInsensitive=true });
+                    ErrorResponse<ErrorResponseData<MarketTradeNotSoldError>>? errorResponse = JsonSerializer.Deserialize<ErrorResponse<ErrorResponseData<MarketTradeNotSoldError>>>(jsonResponse,new JsonSerializerOptions { PropertyNameCaseInsensitive=true });
                     if (errorResponse is not null)
                     {
                         return errorResponse.Error;
                     }
                 }
 
-                return new ErrorResponseData<string>
+                return new UnknownErrorResponseData
                 {
                     Message = errorResponseDynamic?.GetProperty("error").GetProperty("message").GetString() ?? string.Empty,
                     Code = statusCode,
-                    Data = errorResponseDynamic?.GetProperty("error").GetProperty("data").ToString() ?? string.Empty
+                    ErrorText = errorResponseDynamic?.GetProperty("error").GetProperty("data").ToString() ?? string.Empty
                 };
 
             }

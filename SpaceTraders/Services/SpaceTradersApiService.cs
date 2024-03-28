@@ -1,4 +1,5 @@
-﻿using SpaceTraders.ApiModels.Responses;
+﻿using SpaceTraders.Api.Responses;
+using SpaceTraders.Api.Responses.ResponseData;
 using SpaceTraders.Exceptions;
 using SpaceTraders.Repositories;
 using System.Net.Http.Json;
