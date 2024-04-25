@@ -1,7 +1,10 @@
 ﻿using SpaceTraders.Api.Models;
+using SpaceTraders.Models;
 
 namespace SpaceTraders.Repositories;
 internal interface IContractRepository
 {
-    List<Contract> Contracts { get; set; }
+    void AddOrUpdateContract(Contract contract);
+    List<ContractWithCargo> GetAcceptedCargoForWaypoint(string waypointSymbol);
+    Task<List<CargoWithDestination>> GetAllAcceptedContractCargo();
 }

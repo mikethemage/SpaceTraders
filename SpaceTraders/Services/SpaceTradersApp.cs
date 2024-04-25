@@ -8,6 +8,7 @@ using SpaceTraders.Api.Responses.ResponseData;
 using SpaceTraders.Api.Responses.ResponseData.Errors;
 using SpaceTraders.Api.Requests;
 using SpaceTraders.Api.Models;
+using SpaceTraders.Models;
 
 internal class SpaceTradersApp : BackgroundService
 {
@@ -20,6 +21,7 @@ internal class SpaceTradersApp : BackgroundService
     private readonly IFactionRepository _factionRepository;
     private readonly ILogger<SpaceTradersApp> _logger;
     private readonly IMarketRepository _marketRepository;
+    private readonly IShipInfoRepository _shipInfoRepository;
 
     public SpaceTradersApp(
         IAgentRepository agentRepository,
@@ -30,7 +32,8 @@ internal class SpaceTradersApp : BackgroundService
         ITokenRepository tokenRepository,
         IFactionRepository factionRepository,
         ILogger<SpaceTradersApp> logger,
-        IMarketRepository marketRepository)
+        IMarketRepository marketRepository,
+        IShipInfoRepository shipInfoRepository)
     {
         _agentRepository = agentRepository;
         _shipRepository = shipRepository;
@@ -41,6 +44,7 @@ internal class SpaceTradersApp : BackgroundService
         _factionRepository = factionRepository;
         _logger = logger;
         _marketRepository = marketRepository;
+        _shipInfoRepository = shipInfoRepository;
     }
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -48,6 +52,8 @@ internal class SpaceTradersApp : BackgroundService
         _logger.LogInformation("Space Traders API");
 
         await _tokenRepository.LoadTokenFromFile();
+
+        _shipInfoRepository.InitializeRepository();
 
         if (_tokenRepository.Token == string.Empty)
         {
@@ -62,7 +68,7 @@ internal class SpaceTradersApp : BackgroundService
 
             await GetAgent();
             await GetContracts();
-            await GetShips();
+            //await GetShips();
         }
 
         // Find current contract
@@ -87,20 +93,23 @@ internal class SpaceTradersApp : BackgroundService
 
         _logger.LogInformation("Loading waypoints...");
         // Fetch waypoints for each system
-        List<string> systemNames = _shipRepository.GetAllSystemsWithShips();
-        await Task.WhenAll(systemNames.Select(systemName => GetWaypoints(systemName)));
+        List<string> systemSymbols = await _shipRepository.GetAllSystemsWithShips();
+        foreach (string systemSymbol in systemSymbols)
+        {
+            await GetWaypoints(systemSymbol);
+        }
+
         _logger.LogInformation("All waypoints loaded");
 
         while (!cancellationToken.IsCancellationRequested)
         {
-            DateTime nextActionTime = DateTime.UtcNow.AddMinutes(2);
-
             // Check ship status
-            foreach (string shipSymbol in _shipRepository.GetAllMiningShips())
+            foreach (string shipSymbol in await _shipRepository.GetAllIdleMiningShips())
             {
-                nextActionTime = await ProcessShip(currentContract, nextActionTime, shipSymbol);
-
+                await ProcessIdleShip(currentContract, shipSymbol);
             }
+
+            DateTime nextActionTime = await _shipRepository.GetNextAvailabilityTimeForMiningShips();
             var timeToWait = nextActionTime - DateTime.UtcNow;
             if (timeToWait.TotalMilliseconds > 0)
             {
@@ -109,51 +118,16 @@ internal class SpaceTradersApp : BackgroundService
         }
     }
 
-    private async Task<DateTime> ProcessShip(Contract currentContract, DateTime nextActionTime, string shipSymbol)
+    private async Task ProcessIdleShip(Contract currentContract, string shipSymbol)
     {
-        Cooldown? cooldown = _shipRepository.GetShipCooldown(shipSymbol);
-        if (cooldown == null)
-        {
-            throw new Exception("Unable to get ship cooldown!");
-        }
-
-        if (cooldown.Expiration > DateTime.UtcNow)
-        {
-            _logger.LogInformation("Ship {shipSymbol} is on cooldown until {shipCooldownExpiration}", shipSymbol, cooldown.Expiration);
-            // Ship is on cooldown
-            if (cooldown.Expiration < nextActionTime)
-            {
-                nextActionTime = cooldown.Expiration;
-            }
-            return nextActionTime;
-        }
-
-        ShipNav? nav = _shipRepository.GetShipNav(shipSymbol);
+        ShipNav? nav = await _shipRepository.GetShipNav(shipSymbol);
         if (nav == null)
         {
             throw new Exception("Error getting ship nav!");
         }
 
-        if (nav.Status == ShipNavStatus.IN_TRANSIT && nav.Route.Arrival > DateTime.UtcNow)
-        {
-            _logger.LogInformation("Ship {shipSymbol} is in transit to {shipNavRouteDestinationSymbol}, Eta: {shipNavRouteArrival}", shipSymbol, nav.Route.Destination.Symbol, nav.Route.Arrival);
-            // Ship is moving
-            if (nav.Route.Arrival < nextActionTime)
-            {
-                nextActionTime = nav.Route.Arrival;
-            }
-            return nextActionTime;
-        }
 
-        Waypoint? currentLocation = _waypointRepository.Waypoints.Where(w => w.Symbol == nav.WaypointSymbol).FirstOrDefault();
-        if (currentLocation == null)
-        {
-            _logger.LogWarning("Ship is lost in Space!");
-            await RefreshShipNav(shipSymbol);
-            return nextActionTime;
-        }
-
-        ShipFuel? fuel = _shipRepository.GetShipFuel(shipSymbol);
+        ShipFuel? fuel = await _shipRepository.GetShipFuel(shipSymbol);
         if (fuel == null)
         {
             throw new Exception("Error getting ship fuel!");
@@ -162,8 +136,7 @@ internal class SpaceTradersApp : BackgroundService
         if (fuel.Current * 4 < fuel.Capacity)
         {
             _logger.LogInformation("Ship {shipSymbol} is low on fuel.", shipSymbol);
-            if (currentLocation.Type == WaypointType.FUEL_STATION
-                || currentLocation.Traits.Any(t => t.Symbol == WaypointTraitSymbol.MARKETPLACE))
+            if (await _marketRepository.MarketSellsGood(nav.SystemSymbol, nav.WaypointSymbol, "FUEL"))
             {
                 if (nav.Status == ShipNavStatus.DOCKED)
                 {
@@ -176,10 +149,6 @@ internal class SpaceTradersApp : BackgroundService
                     await DockShip(shipSymbol);
                     _logger.LogInformation("Ship {shipSymbol} docked at refueling station.", shipSymbol);
                 }
-                if (DateTime.UtcNow.AddSeconds(2) < nextActionTime)
-                {
-                    nextActionTime = DateTime.UtcNow.AddSeconds(2);
-                }
             }
             else
             {
@@ -188,46 +157,17 @@ internal class SpaceTradersApp : BackgroundService
                     //Need to undock
                     await OrbitShip(shipSymbol);
                     _logger.LogInformation("Undocked");
-                    if (DateTime.UtcNow.AddSeconds(2) < nextActionTime)
-                    {
-                        nextActionTime = DateTime.UtcNow.AddSeconds(2);
-                    }
+
                 }
                 else
                 {
-                    // Need to refuel
-                    var possibleFuelStations = _waypointRepository.Waypoints.Where(w => w.SystemSymbol == nav.SystemSymbol).Where(
-                        w => w.Type == WaypointType.FUEL_STATION
-                        || w.Traits.Where(t => t.Symbol == WaypointTraitSymbol.MARKETPLACE).Any()
-                        ).OrderBy(w =>
-                        Math.Sqrt(
-                        Math.Pow(w.X - currentLocation.X, 2) +
-                        Math.Pow(w.Y - currentLocation.Y, 2))
-                    );
-
-                    Waypoint? targetFuelStation = possibleFuelStations.FirstOrDefault();
-                    if (targetFuelStation == null)
-                    {
-                        throw new Exception("Can't find fuel station!");
-                    }
-
-                    await NavigateShip(shipSymbol, targetFuelStation);                    
-                    nav = _shipRepository.GetShipNav(shipSymbol);
-                    if (nav == null)
-                    {
-                        throw new Exception("Error getting ship nav!");
-                    }
-                    _logger.LogInformation("Ship {shipSymbol} going to refuel at {targetFuelStationSymbol}. Eta: {shipNavRouteArrival}", shipSymbol, targetFuelStation.Symbol, nav.Route.Arrival);
-                    if (nav.Route.Arrival < nextActionTime)
-                    {
-                        nextActionTime = nav.Route.Arrival;
-                    }
+                    nav = await SendShipToRefuellingStation(shipSymbol, nav, fuel);
                 }
             }
-            return nextActionTime;
+            return;
         }
 
-        ShipCargo? cargo = _shipRepository.GetShipCargo(shipSymbol);
+        ShipCargo? cargo = await _shipRepository.GetShipCargo(shipSymbol);
         if (cargo == null)
         {
             throw new Exception("Error getting ship cargo!");
@@ -236,7 +176,7 @@ internal class SpaceTradersApp : BackgroundService
         bool needToSellCargo = false;
         //Ship is not busy and doesn't need to refuel?:
         //Are we at a Mining Site?
-        if (currentLocation.Type == WaypointType.ENGINEERED_ASTEROID)
+        if (_waypointRepository.GetWaypointType(nav.SystemSymbol, nav.WaypointSymbol) == WaypointType.ENGINEERED_ASTEROID)
         {
             //Yes:
             //Is Cargo Bay Full?
@@ -255,22 +195,14 @@ internal class SpaceTradersApp : BackgroundService
                 {
                     //Extract
                     await ExtractWithShip(shipSymbol);
-                    cooldown = _shipRepository.GetShipCooldown(shipSymbol);
-                    if (cooldown == null)
-                    {
-                        throw new Exception("Unable to get ship cooldown!");
-                    }
-                    _logger.LogInformation("Ship {shipSymbol} is on cooldown until {shipCooldownExpiration}", shipSymbol, cooldown.Expiration);
+
                 }
                 else
                 {
                     //Orbit
                     await OrbitShip(shipSymbol);
-                    _logger.LogInformation("Ship {shipSymbol} entered orbit, ready to mine at {currentLocationSymbol}", shipSymbol, currentLocation.Symbol);
-                    if (DateTime.UtcNow.AddSeconds(2) < nextActionTime)
-                    {
-                        nextActionTime = DateTime.UtcNow.AddSeconds(2);
-                    }
+                    _logger.LogInformation("Ship {ship} entered orbit, ready to mine at {waypoint}", shipSymbol, nav.WaypointSymbol);
+
                 }
             }
         }
@@ -286,38 +218,25 @@ internal class SpaceTradersApp : BackgroundService
                     //Need to undock
                     await OrbitShip(shipSymbol);
                     _logger.LogInformation("Undocked");
-                    if (DateTime.UtcNow.AddSeconds(2) < nextActionTime)
-                    {
-                        nextActionTime = DateTime.UtcNow.AddSeconds(2);
-                    }
+
                 }
                 else
                 {
-                    //Get nearest mining site:
-                    var possibleMiningSites = _waypointRepository.Waypoints.Where(w => w.SystemSymbol == nav.SystemSymbol).Where(w => w.Type == WaypointType.ENGINEERED_ASTEROID).OrderBy(w =>
-                        Math.Sqrt(
-                        Math.Pow(w.X - currentLocation.X, 2) +
-                        Math.Pow(w.Y - currentLocation.Y, 2))
-                    );
-
-                    Waypoint? targetMiningSite = possibleMiningSites.FirstOrDefault();
+                    string? targetMiningSite = _waypointRepository.GetNearestWaypointOfType(nav.SystemSymbol, nav.WaypointSymbol, WaypointType.ENGINEERED_ASTEROID);
                     if (targetMiningSite == null)
                     {
                         throw new Exception("Can't find mining site!");
                     }
 
                     //Go to Mining Site:
-                    await NavigateShip(shipSymbol, targetMiningSite);                    
-                    nav = _shipRepository.GetShipNav(shipSymbol);
+                    await NavigateShip(shipSymbol, targetMiningSite);
+                    nav = await _shipRepository.GetShipNav(shipSymbol);
                     if (nav == null)
                     {
                         throw new Exception("Error getting ship nav!");
                     }
-                    _logger.LogInformation("Ship {shipSymbol} going to mine at {targetMiningSiteSymbol}. Eta: {ship.NavRouteArrival}", shipSymbol, targetMiningSite.Symbol, nav.Route.Arrival);
-                    if (nav.Route.Arrival < nextActionTime)
-                    {
-                        nextActionTime = nav.Route.Arrival;
-                    }
+                    _logger.LogInformation("Ship {shipSymbol} going to mine at {targetMiningSiteSymbol}. Eta: {ship.NavRouteArrival}", shipSymbol, targetMiningSite, nav.Route.Arrival);
+
                 }
             }
             else
@@ -330,7 +249,7 @@ internal class SpaceTradersApp : BackgroundService
         }
         if (needToSellCargo)
         {
-            string destinationWaypoint = "";
+            string? destinationWaypointSymbol = null;
             bool haveContractCargo = false;
             //Do we have any of contract cargo???
             foreach (ContractDeliverGood contractDeliverable in currentContract.Terms.Deliver)
@@ -338,7 +257,7 @@ internal class SpaceTradersApp : BackgroundService
                 if (cargo.Inventory.Any(x => x.Symbol == contractDeliverable.TradeSymbol))
                 {
                     haveContractCargo = true;
-                    destinationWaypoint = contractDeliverable.DestinationSymbol;
+                    destinationWaypointSymbol = contractDeliverable.DestinationSymbol;
                     break;
                 }
             }
@@ -350,43 +269,40 @@ internal class SpaceTradersApp : BackgroundService
             }
             else
             {
-                //Go to nearest sale destination
-                var possibleMarkets = _waypointRepository.Waypoints.Where(w => w.Traits.Any(t => t.Symbol == WaypointTraitSymbol.MARKETPLACE)).OrderBy(w =>
-                        Math.Sqrt(
-                        Math.Pow(w.X - currentLocation.X, 2) +
-                        Math.Pow(w.Y - currentLocation.Y, 2))
-                    );
-
-                if (!possibleMarkets.Any())
+                WaypointWithDistance? destinationWaypointWithDistance = await _marketRepository.GetNearestMarketSellingGood(nav.SystemSymbol, nav.WaypointSymbol, cargoToSell.First().Symbol);
+                if (destinationWaypointWithDistance == null)
                 {
-                    throw new Exception("No marketplaces!");
+                    destinationWaypointSymbol = null;
                 }
-
-                foreach (Waypoint possibleMarket in possibleMarkets)
+                else
                 {
-                    var marketData = _marketRepository.Markets.Where(m => m.Symbol == possibleMarket.Symbol).FirstOrDefault();
-                    if (marketData == null)
+                    if (destinationWaypointWithDistance.Distance > fuel.Current)
                     {
-                        //Get market data
-                        marketData = await _spaceTradersApiService.GetFromStarTradersApi<Market>($"systems/{possibleMarket.SystemSymbol}/waypoints/{possibleMarket.Symbol}/market");
-                        _marketRepository.Markets.Add(marketData);
+                        if (fuel.Current < fuel.Capacity)
+                        {
+                            nav = await SendShipToRefuellingStation(shipSymbol, nav, fuel);
+                            return;
+                        }
+                        else
+                        {
+                            await JettisonCargo(shipSymbol, cargoToSell.First().Symbol);
+                            return;
+                        }
                     }
-                    if (marketData!.Imports.Where(i => i.Symbol == cargoToSell.First().Symbol).Any())
+                    else
                     {
-                        destinationWaypoint = possibleMarket.Symbol;
-                        break;
+                        destinationWaypointSymbol = destinationWaypointWithDistance.WaypointSymbol;
                     }
-                }
-
-                if (destinationWaypoint == "")
-                {
-                    //throw new Exception("No valid destination found!");
-                    destinationWaypoint = possibleMarkets.Select(x => x.Symbol).First();
                 }
             }
 
-            var destination = _waypointRepository.Waypoints.Where(x => x.Symbol == destinationWaypoint).First();
-            if (currentLocation == destination)
+            if (destinationWaypointSymbol == null)
+            {
+                throw new Exception("No marketplaces!");
+            }
+
+            //Waypoint? destination = _waypointRepository.GetWaypoint(destinationWaypoint);
+            if (nav.WaypointSymbol == destinationWaypointSymbol)
             {
                 //Dock and sell cargo
                 _logger.LogInformation("{shipSymbol} needs to sell cargo!", shipSymbol);
@@ -395,10 +311,6 @@ internal class SpaceTradersApp : BackgroundService
                 {
                     //need to dock
                     await DockShip(shipSymbol);
-                    if (DateTime.UtcNow.AddSeconds(2) < nextActionTime)
-                    {
-                        nextActionTime = DateTime.UtcNow.AddSeconds(2);
-                    }
                 }
                 else
                 {
@@ -412,11 +324,6 @@ internal class SpaceTradersApp : BackgroundService
                         };
 
                         await SellCargo(shipSymbol, sellCargoRequest);
-
-                        if (nextActionTime > DateTime.UtcNow.AddSeconds(2))
-                        {
-                            nextActionTime = DateTime.UtcNow.AddSeconds(2);
-                        }
                     }
                 }
             }
@@ -427,43 +334,67 @@ internal class SpaceTradersApp : BackgroundService
                     //Need to undock
                     await OrbitShip(shipSymbol);
                     _logger.LogInformation("Undocked");
-                    if (DateTime.UtcNow.AddSeconds(2) < nextActionTime)
-                    {
-                        nextActionTime = DateTime.UtcNow.AddSeconds(2);
-                    }
                 }
                 else
                 {
-                    await NavigateShip(shipSymbol, destination);                    
-                    nav = _shipRepository.GetShipNav(shipSymbol);
+                    await NavigateShip(shipSymbol, destinationWaypointSymbol);
+                    nav = await _shipRepository.GetShipNav(shipSymbol);
                     if (nav == null)
                     {
                         throw new Exception("Error getting ship nav!");
                     }
-                    _logger.LogInformation("Ship {shipSymbol} going to sell cargo at {destinationSymbol}. Eta: {shipNavRouteArrival}", shipSymbol, destination.Symbol, nav.Route.Arrival);
-                    if (nav.Route.Arrival < nextActionTime)
-                    {
-                        nextActionTime = nav.Route.Arrival;
-                    }
+                    _logger.LogInformation("Ship {shipSymbol} going to sell cargo at {destinationSymbol}. Eta: {shipNavRouteArrival}", shipSymbol, destinationWaypointSymbol, nav.Route.Arrival);
                 }
             }
         }
 
-        return nextActionTime;
+        return;
     }
 
-    private async Task RefreshShipNav(string shipName)
+    private async Task<ShipNav> SendShipToRefuellingStation(string shipSymbol, ShipNav nav, ShipFuel fuel)
     {
-        ShipNav shipNav = await _spaceTradersApiService.GetFromStarTradersApi<ShipNav>($"my/ships/{shipName}/nav");
-        _shipRepository.UpdateNav(shipName, shipNav);
+        // Need to refuel               
+        WaypointWithDistance? targetFuelStation = await _marketRepository.GetNearestMarketSellingGood(nav.SystemSymbol, nav.WaypointSymbol, "FUEL");
+        if (targetFuelStation == null)
+        {
+            throw new Exception("No fuel station found!");
+        }
+        if (nav.WaypointSymbol == targetFuelStation.WaypointSymbol)
+        {
+            await DockShip(shipSymbol);
+        }
+        else if (targetFuelStation.Distance > fuel.Current)
+        {
+            throw new Exception("Not enough fuel to get to refuelling station!");
+        }
+        else if (nav.Status == ShipNavStatus.DOCKED)
+        {
+            await OrbitShip(shipSymbol);
+        }
+        else if (nav.WaypointSymbol != targetFuelStation.WaypointSymbol)
+        {
+            await NavigateShip(shipSymbol, targetFuelStation.WaypointSymbol);
+            ShipNav? newNav = await _shipRepository.GetShipNav(shipSymbol);
+            if (newNav == null)
+            {
+                throw new Exception("Error getting ship nav!");
+            }
+            _logger.LogInformation("Ship {shipSymbol} going to refuel at {targetFuelStationSymbol}. Eta: {shipNavRouteArrival}", shipSymbol, targetFuelStation, nav.Route.Arrival);
+
+            nav = newNav;
+        }
+
+        return nav;
     }
+
+
 
     private async Task SellCargo(string shipSymbol, CargoRequest sellCargoRequest)
     {
         try
         {
             BuySellCargoResponseData sellCargoResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<BuySellCargoResponseData, CargoRequest>($"my/ships/{shipSymbol}/sell", sellCargoRequest);
-            _shipRepository.UpdateCargo(shipSymbol, sellCargoResponseData.Cargo);
+            await _shipRepository.UpdateCargo(shipSymbol, sellCargoResponseData.Cargo);
             _agentRepository.Agent = sellCargoResponseData.Agent;
             _logger.LogInformation("Ship {shipSymbol} has sold {sellCargoResponseDataTransactionUnits} of {sellCargoResponseDataTransactionTradeSymbol}", shipSymbol, sellCargoResponseData.Transaction.Units, sellCargoResponseData.Transaction.TradeSymbol);
         }
@@ -484,7 +415,7 @@ internal class SpaceTradersApp : BackgroundService
 
     private async Task JettisonCargo(string shipSymbol, string tradeSymbol)
     {
-        ShipCargo? cargo = _shipRepository.GetShipCargo(shipSymbol);
+        ShipCargo? cargo = await _shipRepository.GetShipCargo(shipSymbol);
         if (cargo != null)
         {
             CargoRequest jettisonCargoRequest = new CargoRequest
@@ -493,62 +424,58 @@ internal class SpaceTradersApp : BackgroundService
                 Units = cargo.Inventory.Where(x => x.Symbol == tradeSymbol).Select(x => x.Units).FirstOrDefault()
             };
             JettisonCargoResponseData jettisonCargoResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<JettisonCargoResponseData, CargoRequest>($"my/ships/{shipSymbol}/jettison", jettisonCargoRequest);
-            _shipRepository.UpdateCargo(shipSymbol, jettisonCargoResponseData.Cargo);
-        }        
+            await _shipRepository.UpdateCargo(shipSymbol, jettisonCargoResponseData.Cargo);
+        }
     }
 
     private async Task ExtractWithShip(string shipSymbol)
     {
         ExtractResponseData extractResponseData = await _spaceTradersApiService.PostToStarTradersApi<ExtractResponseData>($"my/ships/{shipSymbol}/extract");
-        _shipRepository.UpdateCargo(shipSymbol, extractResponseData.Cargo);
-        _shipRepository.UpdateCooldown(shipSymbol, extractResponseData.Cooldown);
+        await _shipRepository.UpdateCargo(shipSymbol, extractResponseData.Cargo);
+        await _shipRepository.UpdateCooldown(shipSymbol, extractResponseData.Cooldown);
         _logger.LogInformation("Ship {shipSymbol} has extracted {extractResponseDataExtractionYieldUnits} {extractResponseDataExtractionYieldSymbol}", shipSymbol, extractResponseData.Extraction.Yield.Units, extractResponseData.Extraction.Yield.Symbol);
+        _logger.LogInformation("Ship {shipSymbol} is on cooldown until {shipCooldownExpiration}", shipSymbol, extractResponseData.Cooldown.Expiration);
     }
 
     private async Task OrbitShip(string shipSymbol)
     {
         DockOrbitResponseData orbitResponse = await _spaceTradersApiService.PostToStarTradersApi<DockOrbitResponseData>($"my/ships/{shipSymbol}/orbit");
-        _shipRepository.UpdateNav(shipSymbol, orbitResponse.Nav);
+        await _shipRepository.UpdateNav(shipSymbol, orbitResponse.Nav);
     }
 
     private async Task RefuelShip(string shipSymbol)
     {
         RefuelResponseData refuelResponse = await _spaceTradersApiService.PostToStarTradersApi<RefuelResponseData>($"my/ships/{shipSymbol}/refuel");
-        _shipRepository.UpdateFuel(shipSymbol, refuelResponse.Fuel);
+        await _shipRepository.UpdateFuel(shipSymbol, refuelResponse.Fuel);
         _agentRepository.Agent = refuelResponse.Agent;
     }
 
     private async Task DockShip(string shipSymbol)
     {
         DockOrbitResponseData dockResponse = await _spaceTradersApiService.PostToStarTradersApi<DockOrbitResponseData>($"my/ships/{shipSymbol}/dock");
-        _shipRepository.UpdateNav(shipSymbol, dockResponse.Nav);
+        await _shipRepository.UpdateNav(shipSymbol, dockResponse.Nav);
     }
 
-    private async Task NavigateShip(string shipSymbol, Waypoint destinationWaypoint)
+    private async Task NavigateShip(string shipSymbol, string destinationWaypointSymbol)
     {
-        NavigateRequest navigateRequest = new NavigateRequest { WaypointSymbol = destinationWaypoint.Symbol };
+        NavigateRequest navigateRequest = new NavigateRequest { WaypointSymbol = destinationWaypointSymbol };
         NavigateResponseData navigateResponse = await _spaceTradersApiService.PostToStarTradersApiWithPayload<NavigateResponseData, NavigateRequest>($"my/ships/{shipSymbol}/navigate", navigateRequest);
-        _shipRepository.UpdateFuel(shipSymbol, navigateResponse.Fuel);
-        _shipRepository.UpdateNav(shipSymbol, navigateResponse.Nav);
+        await _shipRepository.UpdateFuel(shipSymbol, navigateResponse.Fuel);
+        await _shipRepository.UpdateNav(shipSymbol, navigateResponse.Nav);
         foreach (ShipConditionEvent shipConditionEvent in navigateResponse.Events)
         {
             _logger.LogInformation("Ship: {shipSymbol} Ship Condition Event: {shipConditionEvent}", shipSymbol, JsonSerializer.Serialize(shipConditionEvent));
         }
     }
 
-    private async Task GetWaypoints(string systemName)
+    private async Task GetWaypoints(string systemSymbol)
     {
         try
         {
-            List<Waypoint> waypoints = await _spaceTradersApiService.GetAllFromStarTradersApi<Waypoint>($"systems/{systemName}/waypoints");
+            List<Waypoint> waypoints = await _spaceTradersApiService.GetAllFromStarTradersApi<Waypoint>($"systems/{systemSymbol}/waypoints");
             foreach (Waypoint waypoint in waypoints)
             {
-                Waypoint? existingWaypoint = _waypointRepository.Waypoints.Where(w => w.Symbol == waypoint.Symbol).FirstOrDefault();
-                if (existingWaypoint != null)
-                {
-                    _waypointRepository.Waypoints.Remove(existingWaypoint);
-                }
-                _waypointRepository.Waypoints.Add(waypoint);
+                _waypointRepository.AddOrUpdateWaypoint(waypoint);
             }
         }
         catch (StarTradersResponseJsonException ex)
@@ -561,24 +488,7 @@ internal class SpaceTradersApp : BackgroundService
         }
     }
 
-    private async Task GetShips()
-    {
-        try
-        {
-            List<Ship> ships = await _spaceTradersApiService.GetAllFromStarTradersApi<Ship>("my/ships");
-            _shipRepository.Clear();
-            _shipRepository.AddOrUpdateShips(ships);
-            _logger.LogInformation("Loaded Ship Details");
-        }
-        catch (StarTradersResponseJsonException ex)
-        {
-            _logger.LogInformation("JSON Parse Failure: {exception}", ex.Message);
-        }
-        catch (StarTradersApiFailException ex)
-        {
-            _logger.LogInformation("API Call Failure: {exception}", ex.Message);
-        }
-    }
+
 
     private async Task GetContracts()
     {
@@ -630,7 +540,7 @@ internal class SpaceTradersApp : BackgroundService
 
             _factionRepository.Factions.Remove(registerResponseData.Faction.Symbol);
             _factionRepository.Factions.Add(registerResponseData.Faction.Symbol, registerResponseData.Faction);
-            _shipRepository.AddOrUpdateShip(registerResponseData.Ship);
+            //_shipRepository.AddOrUpdateShip(registerResponseData.Ship);
             _contractRepository.Contracts.Add(registerResponseData.Contract);
 
             _spaceTradersApiService.UpdateToken();

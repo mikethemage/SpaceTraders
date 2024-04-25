@@ -32,9 +32,10 @@ internal class Program
             services.AddSingleton<ITokenRepository, TokenRepository>();
             services.AddSingleton<IMarketRepository, MarketRepository>();
             services.AddTransient<IErrorDecoder, ErrorDecoder>();
+            services.AddSingleton<IShipInfoRepository, ShipInfoRepository>();
 
             // Add the SpaceTradersApp class itself
-            services.AddTransient<ISpaceTradersApiService, SpaceTradersApiService>();
+            services.AddSingleton<ISpaceTradersApiService, SpaceTradersApiService>();
             services.AddHostedService<SpaceTradersApp>();
         });
 
