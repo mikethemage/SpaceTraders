@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/SpaceTraders/waypointinfo.http
+/temp.json
+/temp2.json
