@@ -40,7 +40,17 @@ internal class ContractRepository : IContractRepository
         return _contracts[contractId];
     }
 
-    private async Task EnsureAllContractsLoaded()
+    public Contract? GetFirstAcceptedContract()
+    {
+        return _contracts.Where(c=>c.Value.Accepted==true).Select(c=>c.Value).FirstOrDefault();
+    }
+
+    public Contract? GetFirstContract()
+    {
+        return _contracts.Select(c => c.Value).FirstOrDefault();
+    }
+
+    public async Task EnsureAllContractsLoaded()
     {
         if (_contracts.Count == 0)
         {

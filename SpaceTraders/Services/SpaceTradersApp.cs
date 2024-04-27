@@ -55,27 +55,45 @@ internal class SpaceTradersApp : BackgroundService
 
         _shipInfoRepository.InitializeRepository();
 
+        if (_tokenRepository.Token != string.Empty)
+        {
+            //_spaceTradersApiService.UpdateToken();
+            _logger.LogInformation("Logging In");
+
+            try
+            {
+                await GetAgent();
+                await GetContracts();
+                //await GetShips();  
+            }
+            catch (StarTradersErrorResponseException ex)
+            {
+                if(ex.ErrorResponseData.Code==401)
+                {
+                    //Unauthorised so try clearing token:
+                    _tokenRepository.Token = string.Empty;
+                    
+                }
+                else
+                {
+                    //We don't know what to do with any other exceptions so rethrow:
+                    throw;
+                }
+            }                      
+        }
+
         if (_tokenRepository.Token == string.Empty)
         {
             _logger.LogInformation("Registering new agent");
             await Register();
             _logger.LogInformation("Agent registered");
         }
-        else
-        {
-            _spaceTradersApiService.UpdateToken();
-            _logger.LogInformation("Logging In");
-
-            await GetAgent();
-            await GetContracts();
-            //await GetShips();
-        }
 
         // Find current contract
-        Contract? currentContract = _contractRepository.Contracts.FirstOrDefault(c => c.Accepted);
+        Contract? currentContract = _contractRepository.GetFirstAcceptedContract();
         if (currentContract == null)
         {
-            Contract? nextContract = _contractRepository.Contracts.FirstOrDefault();
+            Contract? nextContract = _contractRepository.GetFirstContract();
             if (nextContract == null)
             {
                 //We have no contracts!!
@@ -83,9 +101,8 @@ internal class SpaceTradersApp : BackgroundService
             }
             AcceptContractResponseData acceptContractResponseData = await _spaceTradersApiService.PostToStarTradersApi<AcceptContractResponseData>($"my/contracts/{nextContract.Id}/accept");
             _agentRepository.Agent = acceptContractResponseData.Agent;
-            _contractRepository.Contracts.Remove(nextContract);
             currentContract = acceptContractResponseData.Contract;
-            _contractRepository.Contracts.Add(currentContract);
+            _contractRepository.AddOrUpdateContract(currentContract); 
             _logger.LogInformation("Accepted new contract");
         }
 
@@ -493,10 +510,8 @@ internal class SpaceTradersApp : BackgroundService
     private async Task GetContracts()
     {
         try
-        {
-            List<Contract> contracts = await _spaceTradersApiService.GetAllFromStarTradersApi<Contract>("my/contracts");
-            _contractRepository.Contracts.Clear();
-            _contractRepository.Contracts.AddRange(contracts);
+        {            
+            await _contractRepository.EnsureAllContractsLoaded();
             _logger.LogInformation("Loaded Contract Details");
         }
         catch (StarTradersResponseJsonException ex)
@@ -541,9 +556,9 @@ internal class SpaceTradersApp : BackgroundService
             _factionRepository.Factions.Remove(registerResponseData.Faction.Symbol);
             _factionRepository.Factions.Add(registerResponseData.Faction.Symbol, registerResponseData.Faction);
             //_shipRepository.AddOrUpdateShip(registerResponseData.Ship);
-            _contractRepository.Contracts.Add(registerResponseData.Contract);
+            _contractRepository.AddOrUpdateContract(registerResponseData.Contract);
 
-            _spaceTradersApiService.UpdateToken();
+            
         }
         catch (StarTradersResponseJsonException ex)
         {

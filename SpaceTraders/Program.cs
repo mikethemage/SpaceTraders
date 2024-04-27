@@ -30,12 +30,17 @@ internal class Program
             services.AddSingleton<IWaypointRepository, WaypointRepository>();
             services.AddSingleton<IFactionRepository, FactionRepository>();
             services.AddSingleton<ITokenRepository, TokenRepository>();
-            services.AddSingleton<IMarketRepository, MarketRepository>();
-            services.AddTransient<IErrorDecoder, ErrorDecoder>();
+            services.AddSingleton<IMarketRepository, MarketRepository>();            
             services.AddSingleton<IShipInfoRepository, ShipInfoRepository>();
 
+            //Add throttle service as singleton:
+            services.AddSingleton<IThrottleService, ThrottleService>();
+
+
+            services.AddTransient<ISpaceTradersApiService, SpaceTradersApiService>();
+            services.AddTransient<IErrorDecoder, ErrorDecoder>();                      
+
             // Add the SpaceTradersApp class itself
-            services.AddSingleton<ISpaceTradersApiService, SpaceTradersApiService>();
             services.AddHostedService<SpaceTradersApp>();
         });
 

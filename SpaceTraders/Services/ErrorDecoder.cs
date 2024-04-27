@@ -7,6 +7,7 @@ namespace SpaceTraders.Services;
 internal class ErrorDecoder : IErrorDecoder
 {
     const int _marketTradeNotSoldError = 4602;
+    const int _authenticationError = 401;
 
     public IErrorResponseData Decode(string jsonResponse)
     {
@@ -14,23 +15,42 @@ internal class ErrorDecoder : IErrorDecoder
         {
             JsonElement? errorResponseDynamic = JsonSerializer.Deserialize<JsonElement>(jsonResponse);
             if (errorResponseDynamic?.GetProperty("error").GetProperty("code").GetInt32() is int statusCode)
-            {               
-                if (statusCode == _marketTradeNotSoldError)
+            {
+                var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+                IErrorResponseData? errorResponseData = null;
+
+                switch (statusCode)
                 {
-                    ErrorResponse<ErrorResponseData<MarketTradeNotSoldError>>? errorResponse = JsonSerializer.Deserialize<ErrorResponse<ErrorResponseData<MarketTradeNotSoldError>>>(jsonResponse,new JsonSerializerOptions { PropertyNameCaseInsensitive=true });
-                    if (errorResponse is not null)
-                    {
-                        return errorResponse.Error;
-                    }
+                    case _marketTradeNotSoldError:
+                        {
+                            ErrorResponse<ErrorResponseData<MarketTradeNotSoldError>>? errorResponse = JsonSerializer.Deserialize<ErrorResponse<ErrorResponseData<MarketTradeNotSoldError>>>(jsonResponse, jsonOptions);
+                            errorResponseData = errorResponse?.Error;
+                            break;
+                        }
+
+
+                    case _authenticationError:
+                        {
+                            ErrorResponse<ErrorResponseData<MatchingError>>? errorResponse = JsonSerializer.Deserialize<ErrorResponse<ErrorResponseData<MatchingError>>>(jsonResponse, jsonOptions);
+                            errorResponseData = errorResponse?.Error;
+                            break;
+                        }
                 }
 
-                return new UnknownErrorResponseData
+                if (errorResponseData != null)
                 {
-                    Message = errorResponseDynamic?.GetProperty("error").GetProperty("message").GetString() ?? string.Empty,
-                    Code = statusCode,
-                    ErrorText = errorResponseDynamic?.GetProperty("error").GetProperty("data").ToString() ?? string.Empty
-                };
-
+                    return errorResponseData;
+                }
+                else
+                {
+                    return new UnknownErrorResponseData
+                    {
+                        Message = errorResponseDynamic?.GetProperty("error").GetProperty("message").GetString() ?? string.Empty,
+                        Code = statusCode,
+                        ErrorText = errorResponseDynamic?.GetProperty("error").GetProperty("data").ToString() ?? string.Empty
+                    };
+                }
             }
             throw new Exception("Unable to decode dynamic JSON");
         }
