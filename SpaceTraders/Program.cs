@@ -21,7 +21,7 @@ internal class Program
 
         // Add HttpClient
         builder.Services.AddHttpClient<ISpaceTradersApiService, SpaceTradersApiService>((serviceProvider, client) =>
-        {
+            {
                 client.BaseAddress = new Uri(serviceProvider.GetRequiredService<IOptions<ClientConfig>>().Value.ApiUrl!);
             })
             .AddHttpMessageHandler<AuthenticationHandler>();
@@ -41,17 +41,17 @@ internal class Program
 
         //Add authentication handler:
         builder.Services.AddTransient<AuthenticationHandler>();
-
+        
         builder.Services.AddTransient<IErrorDecoder, ErrorDecoder>();
 
         // Add the SpaceTradersApp class itself
         builder.Services.AddHostedService<SpaceTradersApp>();
 
+        //Add services:
+        builder.Services.AddTransient<IShipService, ShipService>();
 
         using IHost host = builder.Build();
 
         await host.RunAsync();
     }
 }
-
-

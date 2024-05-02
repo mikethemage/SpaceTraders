@@ -8,41 +8,19 @@ internal class ShipRepository : IShipRepository
 {
     private readonly Dictionary<string, Ship> _ships = new Dictionary<string, Ship>();
     
-    private readonly ISpaceTradersApiService _spaceTradersApiService;
-    private readonly IShipInfoRepository _shipInfoRepository;
-
-    public ShipRepository(ISpaceTradersApiService spaceTradersApiService, IShipInfoRepository shipInfoRepository)
-    {
-        _spaceTradersApiService = spaceTradersApiService;
-        _shipInfoRepository = shipInfoRepository;
+    public ShipRepository()
+    {        
     }
 
     public void AddOrUpdateShip(Ship ship)
     {
         _ships.Remove(ship.Symbol);
-        _ships.Add(ship.Symbol, ship);
-        if(!_shipInfoRepository.IsShipKnown(ship.Symbol))
-        {
-            ShipInfoRole shipInfoRole = ShipInfoRole.None;
-            if(ship.Cargo.Capacity > 0 && 
-                ship.Mounts.Any(m=>m.Symbol== "MOUNT_MINING_LASER_I" || m.Symbol == "MOUNT_MINING_LASER_II" || m.Symbol == "MOUNT_MINING_LASER_III"))
-            {
-                shipInfoRole = ShipInfoRole.Miner;
-            }
-
-            _shipInfoRepository.AddOrUpdateShipInfo(new ShipInfo
-            {
-                ShipSymbol = ship.Symbol,
-                LastUpdated = DateTime.UtcNow,
-                Role = shipInfoRole
-            });
-        }
+        _ships.Add(ship.Symbol, ship);        
     }
 
     public void RemoveShip(string shipSymbol)
     {
-        _ships.Remove(shipSymbol);
-        _shipInfoRepository.RemoveShipInfo(shipSymbol);
+        _ships.Remove(shipSymbol);        
     }
 
     public void AddOrUpdateShips(List<Ship> ships)
@@ -53,78 +31,43 @@ internal class ShipRepository : IShipRepository
         }
     }
 
-    private async Task<Ship?> GetShip(string shipSymbol)
+    public Ship? GetShip(string shipSymbol)
     {
         if (_ships.ContainsKey(shipSymbol))
         {
             return _ships[shipSymbol];
-        }
-        else if(_shipInfoRepository.IsShipKnown(shipSymbol))
-        {
-            //Get ship from API and add to dictionary
-            Ship ship = await _spaceTradersApiService.GetFromStarTradersApi<Ship>($"my/ships/{shipSymbol}");
-            AddOrUpdateShip(ship);
-            return ship;
-        }
+        }        
         else
         {
             return null;
         }
     }
 
-    private async Task EnsureAllShipsLoaded()
+    public int GetShipCount()
     {
-        if (_ships.Count == 0)
-        {
-            List<Ship> ships = await _spaceTradersApiService.GetAllFromStarTradersApi<Ship>("my/ships");
-            AddOrUpdateShips(ships);
-        }
-        List<string> apiShipSymbols = _ships.Keys.ToList();
-        List<string> missingShips = _shipInfoRepository.GetMissingShips(apiShipSymbols);
-        foreach (string missingShipSymbol in missingShips)
-        {
-            Ship? foundShip = await GetShip(missingShipSymbol);
-            if (foundShip == null)
-            {
-                _shipInfoRepository.RemoveShipInfo(missingShipSymbol);
-            }
-        }
-    }
+        return _ships.Count;
+    }    
 
-    public async Task<List<string>> GetAllShips()
+    public List<string> GetAllShips()
     {
-        await EnsureAllShipsLoaded();
-
         return _ships.Keys.ToList();
     }    
 
-    public async Task<List<string>> GetAllSystemsWithShips()
+    public List<string> GetAllSystemsWithShips()
     {
-        await EnsureAllShipsLoaded();
-
         return _ships.Values.Select(ship => ship.Nav.SystemSymbol).Distinct().ToList();
-    }
+    }       
 
-    public async Task<List<string>> GetAllMiningShips()
-    {
-        await EnsureAllShipsLoaded();
-
-        return _shipInfoRepository.GetAllMiningShips();
-    }
-
-    public async Task<List<string>> GetAllIdleMiningShips()
-    {
-        List<string> miningShipSymbols = await GetAllMiningShips();
+    public List<string> GetAllIdleMiningShips(List<string> miningShipSymbols)
+    {        
         return _ships.Where(s => miningShipSymbols.Contains(s.Key))
             .Where(s=>s.Value.Cooldown == null || s.Value.Cooldown.Expiration < DateTime.UtcNow)
             .Where(s=>s.Value.Nav == null || s.Value.Nav.Route == null || s.Value.Nav.Route.Arrival < DateTime.UtcNow)            
             .Select(x => x.Key).ToList();
     }
 
-    public async Task<DateTime> GetNextAvailabilityTimeForMiningShips()
+    public DateTime GetNextAvailabilityTimeForMiningShips(List<string> miningShipSymbols)
     {
-        List<string> miningShipSymbols = await GetAllMiningShips();
-
         return _ships.Where(s => miningShipSymbols.Contains(s.Key)).Select(s =>
         {
             if (s.Value.Cooldown != null && s.Value.Cooldown.Expiration > DateTime.UtcNow)
@@ -144,101 +87,50 @@ internal class ShipRepository : IShipRepository
 
     public void Clear()
     {
-        _ships.Clear();
-        _shipInfoRepository.Clear();
+        _ships.Clear();        
     }
 
-    public async Task<Cooldown?> GetShipCooldown(string shipSymbol)
+    public bool UpdateNav(string shipSymbol, ShipNav nav)
     {
-        Ship? ship = await GetShip(shipSymbol);
-        if (ship == null)
+        Ship? shipToUpdate = GetShip(shipSymbol);
+        if (shipToUpdate != null)
         {
-            return null;
+            _ships[shipSymbol].Nav = nav;
+            return true;
         }
-        if(ship.Cooldown.RemainingSeconds > 0 && ship.Cooldown.Expiration < DateTime.UtcNow )
-        {
-            Cooldown cooldown = await _spaceTradersApiService.GetFromStarTradersApi<Cooldown>($"my/ships/{shipSymbol}/cooldown");
-            await UpdateCooldown(shipSymbol, cooldown);
-            return cooldown;
-        }
-        return ship.Cooldown;         
+        return false;
     }
 
-    public async Task<ShipNav?> GetShipNav(string shipSymbol)
+    public bool UpdateFuel(string shipSymbol, ShipFuel fuel)
     {
-        Ship? ship = await GetShip(shipSymbol);
-        if (ship == null)
-        {
-            return null;
-        }
-        if(ship.Nav.Status==ShipNavStatus.IN_TRANSIT && ship.Nav.Route.Arrival < DateTime.UtcNow)
-        {
-            ShipNav nav = await _spaceTradersApiService.GetFromStarTradersApi<ShipNav>($"my/ships/{shipSymbol}/nav");
-            await UpdateNav(shipSymbol, nav);
-            return nav;
-        }
-        return ship.Nav;
-    }
-
-    public async Task UpdateNav(string shipSymbol, ShipNav shipNav)
-    {
-        Ship? shipToUpdate = await GetShip(shipSymbol);
-        if(shipToUpdate != null)
-        {
-            shipToUpdate.Nav = shipNav;
-            if(_shipInfoRepository.IsShipKnown(shipSymbol))
-            {
-                _shipInfoRepository.ShipUpdated(shipSymbol, DateTime.UtcNow);
-            }
-        }        
-    }
-
-    public async Task<ShipFuel?> GetShipFuel(string shipSymbol)
-    {
-        return (await GetShip(shipSymbol))?.Fuel;
-    }
-
-    public async Task<ShipCargo?> GetShipCargo(string shipSymbol)
-    {
-        return (await GetShip(shipSymbol))?.Cargo;
-    }
-
-    public async Task UpdateFuel(string shipSymbol, ShipFuel fuel)
-    {
-        Ship? shipToUpdate = await GetShip(shipSymbol);
+        Ship? shipToUpdate = GetShip(shipSymbol);
         if (shipToUpdate != null)
         {            
             _ships[shipSymbol].Fuel = fuel;
-            if (_shipInfoRepository.IsShipKnown(shipSymbol))
-            {
-                _shipInfoRepository.ShipUpdated(shipSymbol, DateTime.UtcNow);
-            }
-        }            
+            return true;
+        }
+        return false;
     }
 
-    public async Task UpdateCargo(string shipSymbol, ShipCargo cargo)
+    public bool UpdateCargo(string shipSymbol, ShipCargo cargo)
     {
-        Ship? shipToUpdate = await GetShip(shipSymbol);
+        Ship? shipToUpdate = GetShip(shipSymbol);
         if (shipToUpdate != null)
         {
             _ships[shipSymbol].Cargo = cargo;
-            if (_shipInfoRepository.IsShipKnown(shipSymbol))
-            {
-                _shipInfoRepository.ShipUpdated(shipSymbol, DateTime.UtcNow);
-            }
-        }            
+            return true;
+        }
+        return false;
     }
 
-    public async Task UpdateCooldown(string shipSymbol, Cooldown cooldown)
+    public bool UpdateCooldown(string shipSymbol, Cooldown cooldown)
     {
-        Ship? shipToUpdate = await GetShip(shipSymbol);
+        Ship? shipToUpdate = GetShip(shipSymbol);
         if (shipToUpdate != null)
         {
             _ships[shipSymbol].Cooldown = cooldown;
-            if (_shipInfoRepository.IsShipKnown(shipSymbol))
-            {
-                _shipInfoRepository.ShipUpdated(shipSymbol, DateTime.UtcNow);
-            }
-        }        
+            return true;
+        }
+        return false;
     }
 }

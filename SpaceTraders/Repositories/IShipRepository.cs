@@ -6,18 +6,15 @@ internal interface IShipRepository
     void AddOrUpdateShip(Ship ship);
     void AddOrUpdateShips(List<Ship> ships);
     void Clear();
-    Task<List<string>> GetAllIdleMiningShips();
-    Task<List<string>> GetAllMiningShips();
-    Task<List<string>> GetAllShips();
-    Task<List<string>> GetAllSystemsWithShips();
-    Task<DateTime> GetNextAvailabilityTimeForMiningShips();
-    Task<ShipCargo?> GetShipCargo(string shipSymbol);
-    Task<Cooldown?> GetShipCooldown(string shipSymbol);
-    Task<ShipFuel?> GetShipFuel(string shipSymbol);
-    Task<ShipNav?> GetShipNav(string shipSymbol);
+    List<string> GetAllIdleMiningShips(List<string> miningShipSymbols);    
+    List<string> GetAllShips();
+    List<string> GetAllSystemsWithShips();
+    DateTime GetNextAvailabilityTimeForMiningShips(List<string> miningShipSymbols);
+    Ship? GetShip(string shipSymbol);    
+    int GetShipCount();    
     void RemoveShip(string shipSymbol);
-    Task UpdateCargo(string shipSymbol, ShipCargo cargo);
-    Task UpdateCooldown(string shipSymbol, Cooldown cooldown);
-    Task UpdateFuel(string shipSymbol, ShipFuel fuel);
-    Task UpdateNav(string shipSymbol, ShipNav shipNav);
+    bool UpdateCargo(string shipSymbol, ShipCargo cargo);
+    bool UpdateCooldown(string shipSymbol, Cooldown cooldown);
+    bool UpdateFuel(string shipSymbol, ShipFuel fuel);
+    bool UpdateNav(string shipSymbol, ShipNav shipNav);
 }

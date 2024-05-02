@@ -1,6 +1,5 @@
 ﻿using SpaceTraders.Exceptions;
 using SpaceTraders.Repositories;
-using SpaceTraders.Services;
 using System.Text.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -14,8 +13,7 @@ namespace SpaceTraders.Services;
 
 internal class SpaceTradersApp : BackgroundService
 {
-    private readonly IAgentRepository _agentRepository;
-    private readonly IShipRepository _shipRepository;
+    private readonly IAgentRepository _agentRepository;    
     private readonly IContractRepository _contractRepository;
     private readonly IWaypointRepository _waypointRepository;
     private readonly ISpaceTradersApiService _spaceTradersApiService;
@@ -24,10 +22,10 @@ internal class SpaceTradersApp : BackgroundService
     private readonly ILogger<SpaceTradersApp> _logger;
     private readonly IMarketRepository _marketRepository;
     private readonly IShipInfoRepository _shipInfoRepository;
+    private readonly IShipService _shipService;
 
     public SpaceTradersApp(
-        IAgentRepository agentRepository,
-        IShipRepository shipRepository,
+        IAgentRepository agentRepository,        
         IContractRepository contractRepository,
         IWaypointRepository waypointRepository,
         ISpaceTradersApiService spaceTradersApiService,
@@ -35,10 +33,10 @@ internal class SpaceTradersApp : BackgroundService
         IFactionRepository factionRepository,
         ILogger<SpaceTradersApp> logger,
         IMarketRepository marketRepository,
-        IShipInfoRepository shipInfoRepository)
+        IShipInfoRepository shipInfoRepository,
+        IShipService shipService)
     {
-        _agentRepository = agentRepository;
-        _shipRepository = shipRepository;
+        _agentRepository = agentRepository;        
         _contractRepository = contractRepository;
         _waypointRepository = waypointRepository;
         _spaceTradersApiService = spaceTradersApiService;
@@ -47,6 +45,7 @@ internal class SpaceTradersApp : BackgroundService
         _logger = logger;
         _marketRepository = marketRepository;
         _shipInfoRepository = shipInfoRepository;
+        _shipService = shipService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
@@ -60,8 +59,8 @@ internal class SpaceTradersApp : BackgroundService
 
         //Load waypoints:
         _logger.LogInformation("Loading waypoints...");
-        // Fetch waypoints for each system
-        List<string> systemSymbols = await _shipRepository.GetAllSystemsWithShips();
+        // Fetch waypoints for each system:
+        List<string> systemSymbols = await _shipService.GetAllSystemsWithShips();
         foreach (string systemSymbol in systemSymbols)
         {
             await GetWaypoints(systemSymbol);
@@ -71,13 +70,13 @@ internal class SpaceTradersApp : BackgroundService
         //Run Loop:
         while (!cancellationToken.IsCancellationRequested)
         {
-            // Check ship status
-            foreach (string shipSymbol in await _shipRepository.GetAllIdleMiningShips())
+            // Check ship status:
+            foreach (string shipSymbol in await _shipService.GetAllIdleMiningShips())
             {
                 await ProcessIdleShip(shipSymbol);
             }
 
-            DateTime nextActionTime = await _shipRepository.GetNextAvailabilityTimeForMiningShips();
+            DateTime nextActionTime = await _shipService.GetNextAvailabilityTimeForMiningShips();
             var timeToWait = nextActionTime - DateTime.UtcNow;
             if (timeToWait.TotalMilliseconds > 0)
             {
@@ -144,14 +143,14 @@ internal class SpaceTradersApp : BackgroundService
 
     private async Task ProcessIdleShip(string shipSymbol)
     {   
-        ShipNav? nav = await _shipRepository.GetShipNav(shipSymbol);
+        ShipNav? nav = await _shipService.GetShipNav(shipSymbol);
         if (nav == null)
         {
             throw new Exception("Error getting ship nav!");
         }
 
 
-        ShipFuel? fuel = await _shipRepository.GetShipFuel(shipSymbol);
+        ShipFuel? fuel = await _shipService.GetShipFuel(shipSymbol);
         if (fuel == null)
         {
             throw new Exception("Error getting ship fuel!");
@@ -191,7 +190,7 @@ internal class SpaceTradersApp : BackgroundService
             return;
         }
 
-        ShipCargo? cargo = await _shipRepository.GetShipCargo(shipSymbol);
+        ShipCargo? cargo = await _shipService.GetShipCargo(shipSymbol);
         if (cargo == null)
         {
             throw new Exception("Error getting ship cargo!");
@@ -254,7 +253,7 @@ internal class SpaceTradersApp : BackgroundService
 
                     //Go to Mining Site:
                     await NavigateShip(shipSymbol, targetMiningSite);
-                    nav = await _shipRepository.GetShipNav(shipSymbol);
+                    nav = await _shipService.GetShipNav(shipSymbol);
                     if (nav == null)
                     {
                         throw new Exception("Error getting ship nav!");
@@ -364,7 +363,7 @@ internal class SpaceTradersApp : BackgroundService
                 else
                 {
                     await NavigateShip(shipSymbol, destinationWaypointSymbol);
-                    nav = await _shipRepository.GetShipNav(shipSymbol);
+                    nav = await _shipService.GetShipNav(shipSymbol);
                     if (nav == null)
                     {
                         throw new Exception("Error getting ship nav!");
@@ -400,7 +399,7 @@ internal class SpaceTradersApp : BackgroundService
         else if (nav.WaypointSymbol != targetFuelStation.WaypointSymbol)
         {
             await NavigateShip(shipSymbol, targetFuelStation.WaypointSymbol);
-            ShipNav? newNav = await _shipRepository.GetShipNav(shipSymbol);
+            ShipNav? newNav = await _shipService.GetShipNav(shipSymbol);
             if (newNav == null)
             {
                 throw new Exception("Error getting ship nav!");
@@ -420,7 +419,7 @@ internal class SpaceTradersApp : BackgroundService
         try
         {
             BuySellCargoResponseData sellCargoResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<BuySellCargoResponseData, CargoRequest>($"my/ships/{shipSymbol}/sell", sellCargoRequest);
-            await _shipRepository.UpdateCargo(shipSymbol, sellCargoResponseData.Cargo);
+            _shipService.UpdateCargo(shipSymbol, sellCargoResponseData.Cargo);
             _agentRepository.Agent = sellCargoResponseData.Agent;
             _logger.LogInformation("Ship {shipSymbol} has sold {sellCargoResponseDataTransactionUnits} of {sellCargoResponseDataTransactionTradeSymbol}", shipSymbol, sellCargoResponseData.Transaction.Units, sellCargoResponseData.Transaction.TradeSymbol);
         }
@@ -441,7 +440,7 @@ internal class SpaceTradersApp : BackgroundService
 
     private async Task JettisonCargo(string shipSymbol, string tradeSymbol)
     {
-        ShipCargo? cargo = await _shipRepository.GetShipCargo(shipSymbol);
+        ShipCargo? cargo = await _shipService.GetShipCargo(shipSymbol);
         if (cargo != null)
         {
             CargoRequest jettisonCargoRequest = new CargoRequest
@@ -450,15 +449,15 @@ internal class SpaceTradersApp : BackgroundService
                 Units = cargo.Inventory.Where(x => x.Symbol == tradeSymbol).Select(x => x.Units).FirstOrDefault()
             };
             JettisonCargoResponseData jettisonCargoResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<JettisonCargoResponseData, CargoRequest>($"my/ships/{shipSymbol}/jettison", jettisonCargoRequest);
-            await _shipRepository.UpdateCargo(shipSymbol, jettisonCargoResponseData.Cargo);
+            _shipService.UpdateCargo(shipSymbol, jettisonCargoResponseData.Cargo);
         }
     }
 
     private async Task ExtractWithShip(string shipSymbol)
     {
         ExtractResponseData extractResponseData = await _spaceTradersApiService.PostToStarTradersApi<ExtractResponseData>($"my/ships/{shipSymbol}/extract");
-        await _shipRepository.UpdateCargo(shipSymbol, extractResponseData.Cargo);
-        await _shipRepository.UpdateCooldown(shipSymbol, extractResponseData.Cooldown);
+        _shipService.UpdateCargo(shipSymbol, extractResponseData.Cargo);
+        _shipService.UpdateCooldown(shipSymbol, extractResponseData.Cooldown);
         _logger.LogInformation("Ship {shipSymbol} has extracted {extractResponseDataExtractionYieldUnits} {extractResponseDataExtractionYieldSymbol}", shipSymbol, extractResponseData.Extraction.Yield.Units, extractResponseData.Extraction.Yield.Symbol);
         _logger.LogInformation("Ship {shipSymbol} is on cooldown until {shipCooldownExpiration}", shipSymbol, extractResponseData.Cooldown.Expiration);
     }
@@ -466,28 +465,28 @@ internal class SpaceTradersApp : BackgroundService
     private async Task OrbitShip(string shipSymbol)
     {
         DockOrbitResponseData orbitResponse = await _spaceTradersApiService.PostToStarTradersApi<DockOrbitResponseData>($"my/ships/{shipSymbol}/orbit");
-        await _shipRepository.UpdateNav(shipSymbol, orbitResponse.Nav);
+        _shipService.UpdateNav(shipSymbol, orbitResponse.Nav);
     }
 
     private async Task RefuelShip(string shipSymbol)
     {
         RefuelResponseData refuelResponse = await _spaceTradersApiService.PostToStarTradersApi<RefuelResponseData>($"my/ships/{shipSymbol}/refuel");
-        await _shipRepository.UpdateFuel(shipSymbol, refuelResponse.Fuel);
+        _shipService.UpdateFuel(shipSymbol, refuelResponse.Fuel);
         _agentRepository.Agent = refuelResponse.Agent;
     }
 
     private async Task DockShip(string shipSymbol)
     {
         DockOrbitResponseData dockResponse = await _spaceTradersApiService.PostToStarTradersApi<DockOrbitResponseData>($"my/ships/{shipSymbol}/dock");
-        await _shipRepository.UpdateNav(shipSymbol, dockResponse.Nav);
+        _shipService.UpdateNav(shipSymbol, dockResponse.Nav);
     }
 
     private async Task NavigateShip(string shipSymbol, string destinationWaypointSymbol)
     {
         NavigateRequest navigateRequest = new NavigateRequest { WaypointSymbol = destinationWaypointSymbol };
         NavigateResponseData navigateResponse = await _spaceTradersApiService.PostToStarTradersApiWithPayload<NavigateResponseData, NavigateRequest>($"my/ships/{shipSymbol}/navigate", navigateRequest);
-        await _shipRepository.UpdateFuel(shipSymbol, navigateResponse.Fuel);
-        await _shipRepository.UpdateNav(shipSymbol, navigateResponse.Nav);
+        _shipService.UpdateFuel(shipSymbol, navigateResponse.Fuel);
+        _shipService.UpdateNav(shipSymbol, navigateResponse.Nav);
         foreach (ShipConditionEvent shipConditionEvent in navigateResponse.Events)
         {
             _logger.LogInformation("Ship: {shipSymbol} Ship Condition Event: {shipConditionEvent}", shipSymbol, JsonSerializer.Serialize(shipConditionEvent));
