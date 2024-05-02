@@ -5,6 +5,7 @@ using SpaceTraders.Repositories;
 using System.Net.Http.Json;
 
 namespace SpaceTraders.Services;
+
 internal class SpaceTradersApiService : ISpaceTradersApiService
 {
     private readonly HttpClient _httpClient;    
@@ -19,21 +20,9 @@ internal class SpaceTradersApiService : ISpaceTradersApiService
 
         _httpClient.BaseAddress = new Uri("https://api.spacetraders.io/v2/");
         _errorDecoder = errorDecoder;
-        _throttleService = throttleService;     
-        
+        _throttleService = throttleService;   
+    }
        
-    }
-
-    public void UpdateToken()
-    {
-        _httpClient.DefaultRequestHeaders.Clear();
-        if(_tokenRepository.Token!=string.Empty)
-        {
-            // Set authorization header for HttpClient
-            _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_tokenRepository.Token}");
-        }
-    }
-
     public async Task<List<T>> GetAllFromStarTradersApi<T>(string requestUri)
     {
         int page = 1;
@@ -44,8 +33,7 @@ internal class SpaceTradersApiService : ISpaceTradersApiService
         {
             keepGoing = false;
             await _throttleService.Throttle();
-            UpdateToken();
-
+           
             using HttpResponseMessage response = await _httpClient.GetAsync($"{requestUri}?page={page}");            
 
             if (response.IsSuccessStatusCode)
@@ -80,7 +68,7 @@ internal class SpaceTradersApiService : ISpaceTradersApiService
     public async Task<T> GetFromStarTradersApi<T>(string requestUri)
     {
         await _throttleService.Throttle();
-        UpdateToken();
+        
         using HttpResponseMessage response = await _httpClient.GetAsync(requestUri);
         
         return await ReadApiResponse<T>(response);
@@ -89,7 +77,7 @@ internal class SpaceTradersApiService : ISpaceTradersApiService
     public async Task<T> PostToStarTradersApiWithPayload<T, U>(string requestUri, U request)
     {
         await _throttleService.Throttle();
-        UpdateToken();
+       
         using HttpResponseMessage response = await _httpClient.PostAsJsonAsync(requestUri, request);
         
         return await ReadApiResponse<T>(response);
@@ -100,7 +88,7 @@ internal class SpaceTradersApiService : ISpaceTradersApiService
         // Create empty content
         HttpContent content = new StringContent("");
         await _throttleService.Throttle();
-        UpdateToken();
+        
         using HttpResponseMessage response = await _httpClient.PostAsync(requestUri, content);
         
         return await ReadApiResponse<T>(response);

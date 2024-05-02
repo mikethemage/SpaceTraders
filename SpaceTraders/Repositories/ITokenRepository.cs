@@ -1,10 +1,8 @@
 ﻿
 namespace SpaceTraders.Repositories;
 
-internal interface ITokenRepository
+public interface ITokenRepository
 {
-    string Token { get; set; }
-
-    Task LoadTokenFromFile();
-    Task SaveTokenToFile();
+    Task<string?> GetTokenAsync();
+    Task UpdateTokenAsync(string? token);
 }

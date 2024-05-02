@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using SpaceTraders.Api.Models;
+using SpaceTraders.Api.Responses.ResponseData;
 using SpaceTraders.Models;
 using SpaceTraders.Services;
 
@@ -17,6 +18,8 @@ internal class ContractRepository : IContractRepository
     {
         _spaceTradersApiService = spaceTradersApiService;
     }
+
+    
 
     public void AddOrUpdateContract(Contract contract)
     {

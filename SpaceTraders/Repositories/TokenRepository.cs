@@ -5,24 +5,50 @@ using System.Text;
 using System.Threading.Tasks;
 
 namespace SpaceTraders.Repositories;
-internal class TokenRepository : ITokenRepository
+public class TokenRepository : ITokenRepository
 {
-    public string Token { get; set; } = string.Empty;
+    const string filename = "Token.txt";
+    private string? _token = null;
+    private bool fileLoaded = false;
 
-    public async Task LoadTokenFromFile()
+    public async Task<string?> GetTokenAsync()
+    {
+        if (_token==null && fileLoaded == false)
+        {
+            await LoadTokenFromFile();
+            fileLoaded = true;
+        }
+
+        return _token;
+    }
+
+    public async Task UpdateTokenAsync(string? token)
+    {
+        _token = token;
+        await SaveTokenToFile();
+    }
+
+    private async Task LoadTokenFromFile()
     {
         try
         {
-            Token = await File.ReadAllTextAsync("Token.txt");
+            _token = await File.ReadAllTextAsync(filename);
         }
         catch
         {
-            Token = string.Empty;
+            _token = null;
         }
     }
 
-    public async Task SaveTokenToFile()
+    private async Task SaveTokenToFile()
     {
-        await File.WriteAllTextAsync("Token.txt", Token);
+        if(_token != null)
+        {
+            await File.WriteAllTextAsync(filename, _token);
+        }
+        else
+        {
+            File.Delete(filename);
+        }
     }
 }

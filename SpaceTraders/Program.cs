@@ -1,52 +1,56 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 using SpaceTraders.Repositories;
 using SpaceTraders.Services;
+using SpaceTraders.Models;
+using Microsoft.Extensions.Options;
 
 namespace SpaceTraders;
 
 internal class Program
 {
-    static void Main(string[] args)
+    static async Task Main(string[] args)
     {
-        var builder = Host.CreateDefaultBuilder();
+        HostApplicationBuilder builder = Host.CreateApplicationBuilder();
 
-        builder.ConfigureServices(services =>
+        builder.Services.AddOptions<ClientConfig>()
+                .Bind(builder.Configuration.GetSection(nameof(ClientConfig)))
+                .ValidateDataAnnotations()
+                .ValidateOnStart();
+
+        // Add HttpClient
+        builder.Services.AddHttpClient<ISpaceTradersApiService, SpaceTradersApiService>((serviceProvider, client) =>
         {
-            //services.AddLogging(logging => logging.AddConsole());
+                client.BaseAddress = new Uri(serviceProvider.GetRequiredService<IOptions<ClientConfig>>().Value.ApiUrl!);
+            })
+            .AddHttpMessageHandler<AuthenticationHandler>();
 
-            // Add HttpClient
-            services.AddHttpClient("SpaceTradersClient", client =>
-            {
-                client.BaseAddress = new Uri("https://api.spacetraders.io/v2/");
-                // Add any additional HttpClient configuration here
-            });
+        // Add repositories as singletons
+        builder.Services.AddSingleton<IAgentRepository, AgentRepository>();
+        builder.Services.AddSingleton<IShipRepository, ShipRepository>();
+        builder.Services.AddSingleton<IContractRepository, ContractRepository>();
+        builder.Services.AddSingleton<IWaypointRepository, WaypointRepository>();
+        builder.Services.AddSingleton<IFactionRepository, FactionRepository>();
+        builder.Services.AddSingleton<ITokenRepository, TokenRepository>();
+        builder.Services.AddSingleton<IMarketRepository, MarketRepository>();
+        builder.Services.AddSingleton<IShipInfoRepository, ShipInfoRepository>();
 
-            // Add repositories as singletons
-            services.AddSingleton<IAgentRepository, AgentRepository>();
-            services.AddSingleton<IShipRepository, ShipRepository>();
-            services.AddSingleton<IContractRepository, ContractRepository>();
-            services.AddSingleton<IWaypointRepository, WaypointRepository>();
-            services.AddSingleton<IFactionRepository, FactionRepository>();
-            services.AddSingleton<ITokenRepository, TokenRepository>();
-            services.AddSingleton<IMarketRepository, MarketRepository>();            
-            services.AddSingleton<IShipInfoRepository, ShipInfoRepository>();
+        //Add throttle service:
+        builder.Services.AddSingleton<IThrottleService, ThrottleService>();
 
-            //Add throttle service as singleton:
-            services.AddSingleton<IThrottleService, ThrottleService>();
+        //Add authentication handler:
+        builder.Services.AddTransient<AuthenticationHandler>();
+
+        builder.Services.AddTransient<IErrorDecoder, ErrorDecoder>();
+
+        // Add the SpaceTradersApp class itself
+        builder.Services.AddHostedService<SpaceTradersApp>();
 
 
-            services.AddTransient<ISpaceTradersApiService, SpaceTradersApiService>();
-            services.AddTransient<IErrorDecoder, ErrorDecoder>();                      
+        using IHost host = builder.Build();
 
-            // Add the SpaceTradersApp class itself
-            services.AddHostedService<SpaceTradersApp>();
-        });
-
-        var host = builder.Build();
-
-        host.Run();
+        await host.RunAsync();
     }
 }
 

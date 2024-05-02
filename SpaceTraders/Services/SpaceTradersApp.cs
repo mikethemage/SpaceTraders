@@ -10,6 +10,8 @@ using SpaceTraders.Api.Requests;
 using SpaceTraders.Api.Models;
 using SpaceTraders.Models;
 
+namespace SpaceTraders.Services;
+
 internal class SpaceTradersApp : BackgroundService
 {
     private readonly IAgentRepository _agentRepository;
@@ -49,47 +51,43 @@ internal class SpaceTradersApp : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken cancellationToken)
     {
+        //Initization:
         _logger.LogInformation("Space Traders API");
+        //_shipInfoRepository.InitializeRepository();
 
-        await _tokenRepository.LoadTokenFromFile();
+        //Log in:
+        await LogIn();
 
-        _shipInfoRepository.InitializeRepository();
-
-        if (_tokenRepository.Token != string.Empty)
+        //Load waypoints:
+        _logger.LogInformation("Loading waypoints...");
+        // Fetch waypoints for each system
+        List<string> systemSymbols = await _shipRepository.GetAllSystemsWithShips();
+        foreach (string systemSymbol in systemSymbols)
         {
-            //_spaceTradersApiService.UpdateToken();
-            _logger.LogInformation("Logging In");
+            await GetWaypoints(systemSymbol);
+        }
+        _logger.LogInformation("All waypoints loaded");
 
-            try
+        //Run Loop:
+        while (!cancellationToken.IsCancellationRequested)
+        {
+            // Check ship status
+            foreach (string shipSymbol in await _shipRepository.GetAllIdleMiningShips())
             {
-                await GetAgent();
-                await GetContracts();
-                //await GetShips();  
+                await ProcessIdleShip(shipSymbol);
             }
-            catch (StarTradersErrorResponseException ex)
+
+            DateTime nextActionTime = await _shipRepository.GetNextAvailabilityTimeForMiningShips();
+            var timeToWait = nextActionTime - DateTime.UtcNow;
+            if (timeToWait.TotalMilliseconds > 0)
             {
-                if(ex.ErrorResponseData.Code==401)
-                {
-                    //Unauthorised so try clearing token:
-                    _tokenRepository.Token = string.Empty;
-                    
-                }
-                else
-                {
-                    //We don't know what to do with any other exceptions so rethrow:
-                    throw;
-                }
-            }                      
+                await Task.Delay(timeToWait, cancellationToken);
+            }
         }
+    }
 
-        if (_tokenRepository.Token == string.Empty)
-        {
-            _logger.LogInformation("Registering new agent");
-            await Register();
-            _logger.LogInformation("Agent registered");
-        }
-
-        // Find current contract
+    private async Task<Contract> GetCurrentContract()
+    {
         Contract? currentContract = _contractRepository.GetFirstAcceptedContract();
         if (currentContract == null)
         {
@@ -102,41 +100,50 @@ internal class SpaceTradersApp : BackgroundService
             AcceptContractResponseData acceptContractResponseData = await _spaceTradersApiService.PostToStarTradersApi<AcceptContractResponseData>($"my/contracts/{nextContract.Id}/accept");
             _agentRepository.Agent = acceptContractResponseData.Agent;
             currentContract = acceptContractResponseData.Contract;
-            _contractRepository.AddOrUpdateContract(currentContract); 
+            _contractRepository.AddOrUpdateContract(currentContract);
             _logger.LogInformation("Accepted new contract");
         }
 
-        // By this point we should have an accepted contract
+        return currentContract;
+    }
 
-        _logger.LogInformation("Loading waypoints...");
-        // Fetch waypoints for each system
-        List<string> systemSymbols = await _shipRepository.GetAllSystemsWithShips();
-        foreach (string systemSymbol in systemSymbols)
+    private async Task LogIn()
+    {
+        if (await _tokenRepository.GetTokenAsync() != null)
         {
-            await GetWaypoints(systemSymbol);
+            //_spaceTradersApiService.UpdateToken();
+            _logger.LogInformation("Logging In");
+
+            try
+            {
+                await GetAgent();
+                await GetContracts();
+            }
+            catch (StarTradersErrorResponseException ex)
+            {
+                if (ex.ErrorResponseData.Code == 401)
+                {
+                    //Unauthorised so try clearing token:
+                    await _tokenRepository.UpdateTokenAsync(null);
+                }
+                else
+                {
+                    //We don't know what to do with any other exceptions so rethrow:
+                    throw;
+                }
+            }
         }
 
-        _logger.LogInformation("All waypoints loaded");
-
-        while (!cancellationToken.IsCancellationRequested)
+        if (await _tokenRepository.GetTokenAsync() == null)
         {
-            // Check ship status
-            foreach (string shipSymbol in await _shipRepository.GetAllIdleMiningShips())
-            {
-                await ProcessIdleShip(currentContract, shipSymbol);
-            }
-
-            DateTime nextActionTime = await _shipRepository.GetNextAvailabilityTimeForMiningShips();
-            var timeToWait = nextActionTime - DateTime.UtcNow;
-            if (timeToWait.TotalMilliseconds > 0)
-            {
-                await Task.Delay(timeToWait, cancellationToken);
-            }
+            _logger.LogInformation("Registering new agent");
+            await Register();
+            _logger.LogInformation("Agent registered");
         }
     }
 
-    private async Task ProcessIdleShip(Contract currentContract, string shipSymbol)
-    {
+    private async Task ProcessIdleShip(string shipSymbol)
+    {   
         ShipNav? nav = await _shipRepository.GetShipNav(shipSymbol);
         if (nav == null)
         {
@@ -266,6 +273,9 @@ internal class SpaceTradersApp : BackgroundService
         }
         if (needToSellCargo)
         {
+            // Find current contract
+            Contract currentContract = await GetCurrentContract();
+
             string? destinationWaypointSymbol = null;
             bool haveContractCargo = false;
             //Do we have any of contract cargo???
@@ -317,8 +327,7 @@ internal class SpaceTradersApp : BackgroundService
             {
                 throw new Exception("No marketplaces!");
             }
-
-            //Waypoint? destination = _waypointRepository.GetWaypoint(destinationWaypoint);
+                        
             if (nav.WaypointSymbol == destinationWaypointSymbol)
             {
                 //Dock and sell cargo
@@ -550,15 +559,10 @@ internal class SpaceTradersApp : BackgroundService
         {
             RegisterResponseData registerResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<RegisterResponseData, RegisterRequest>("register", request);
             _agentRepository.Agent = registerResponseData.Agent;
-            _tokenRepository.Token = registerResponseData.Token;
-            await _tokenRepository.SaveTokenToFile();
-
+            await _tokenRepository.UpdateTokenAsync(registerResponseData.Token);            
             _factionRepository.Factions.Remove(registerResponseData.Faction.Symbol);
-            _factionRepository.Factions.Add(registerResponseData.Faction.Symbol, registerResponseData.Faction);
-            //_shipRepository.AddOrUpdateShip(registerResponseData.Ship);
-            _contractRepository.AddOrUpdateContract(registerResponseData.Contract);
-
-            
+            _factionRepository.Factions.Add(registerResponseData.Faction.Symbol, registerResponseData.Faction);            
+            _contractRepository.AddOrUpdateContract(registerResponseData.Contract);            
         }
         catch (StarTradersResponseJsonException ex)
         {
