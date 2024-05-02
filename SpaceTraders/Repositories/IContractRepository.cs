@@ -6,9 +6,11 @@ internal interface IContractRepository
 {
     void AddOrUpdateContract(Contract contract);
     void AddOrUpdateContracts(List<Contract> contracts);
-    Task EnsureAllContractsLoaded();
+    
     List<ContractWithCargo> GetAcceptedCargoForWaypoint(string waypointSymbol);
-    Task<List<CargoWithDestination>> GetAllAcceptedContractCargo();
+    List<CargoWithDestination> GetAllAcceptedContractCargo();
+    List<string> GetAllContracts();
+    int GetContractsCount();
     Contract? GetFirstAcceptedContract();
     Contract? GetFirstContract();
 }

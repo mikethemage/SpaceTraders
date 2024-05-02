@@ -14,7 +14,7 @@ namespace SpaceTraders.Services;
 internal class SpaceTradersApp : BackgroundService
 {
     private readonly IAgentRepository _agentRepository;    
-    private readonly IContractRepository _contractRepository;
+    private readonly IContractService _contractService;
     private readonly IWaypointRepository _waypointRepository;
     private readonly ISpaceTradersApiService _spaceTradersApiService;
     private readonly ITokenRepository _tokenRepository;
@@ -25,8 +25,8 @@ internal class SpaceTradersApp : BackgroundService
     private readonly IShipService _shipService;
 
     public SpaceTradersApp(
-        IAgentRepository agentRepository,        
-        IContractRepository contractRepository,
+        IAgentRepository agentRepository,
+        IContractService contractService,
         IWaypointRepository waypointRepository,
         ISpaceTradersApiService spaceTradersApiService,
         ITokenRepository tokenRepository,
@@ -37,7 +37,7 @@ internal class SpaceTradersApp : BackgroundService
         IShipService shipService)
     {
         _agentRepository = agentRepository;        
-        _contractRepository = contractRepository;
+        _contractService = contractService;
         _waypointRepository = waypointRepository;
         _spaceTradersApiService = spaceTradersApiService;
         _tokenRepository = tokenRepository;
@@ -87,10 +87,10 @@ internal class SpaceTradersApp : BackgroundService
 
     private async Task<Contract> GetCurrentContract()
     {
-        Contract? currentContract = _contractRepository.GetFirstAcceptedContract();
+        Contract? currentContract = _contractService.GetFirstAcceptedContract();
         if (currentContract == null)
         {
-            Contract? nextContract = _contractRepository.GetFirstContract();
+            Contract? nextContract = _contractService.GetFirstContract();
             if (nextContract == null)
             {
                 //We have no contracts!!
@@ -99,7 +99,7 @@ internal class SpaceTradersApp : BackgroundService
             AcceptContractResponseData acceptContractResponseData = await _spaceTradersApiService.PostToStarTradersApi<AcceptContractResponseData>($"my/contracts/{nextContract.Id}/accept");
             _agentRepository.Agent = acceptContractResponseData.Agent;
             currentContract = acceptContractResponseData.Contract;
-            _contractRepository.AddOrUpdateContract(currentContract);
+            _contractService.AddOrUpdateContract(currentContract);
             _logger.LogInformation("Accepted new contract");
         }
 
@@ -519,7 +519,7 @@ internal class SpaceTradersApp : BackgroundService
     {
         try
         {            
-            await _contractRepository.EnsureAllContractsLoaded();
+            await _contractService.EnsureAllContractsLoaded();
             _logger.LogInformation("Loaded Contract Details");
         }
         catch (StarTradersResponseJsonException ex)
@@ -561,7 +561,7 @@ internal class SpaceTradersApp : BackgroundService
             await _tokenRepository.UpdateTokenAsync(registerResponseData.Token);            
             _factionRepository.Factions.Remove(registerResponseData.Faction.Symbol);
             _factionRepository.Factions.Add(registerResponseData.Faction.Symbol, registerResponseData.Faction);            
-            _contractRepository.AddOrUpdateContract(registerResponseData.Contract);            
+            _contractService.AddOrUpdateContract(registerResponseData.Contract);            
         }
         catch (StarTradersResponseJsonException ex)
         {

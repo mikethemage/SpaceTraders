@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using SpaceTraders.Api.Models;
-using SpaceTraders.Api.Responses.ResponseData;
+﻿using SpaceTraders.Api.Models;
 using SpaceTraders.Models;
 using SpaceTraders.Services;
 
@@ -12,14 +6,11 @@ namespace SpaceTraders.Repositories;
 internal class ContractRepository : IContractRepository
 {
     private readonly Dictionary<string, Contract> _contracts = new Dictionary<string, Contract>();
-    private readonly ISpaceTradersApiService _spaceTradersApiService;
-
-    public ContractRepository(ISpaceTradersApiService spaceTradersApiService)
-    {
-        _spaceTradersApiService = spaceTradersApiService;
-    }
-
     
+    public ContractRepository()
+    {
+        
+    }    
 
     public void AddOrUpdateContract(Contract contract)
     {
@@ -53,25 +44,27 @@ internal class ContractRepository : IContractRepository
         return _contracts.Select(c => c.Value).FirstOrDefault();
     }
 
-    public async Task EnsureAllContractsLoaded()
+    //public async Task EnsureAllContractsLoaded()
+    //{
+    //    if (_contracts.Count == 0)
+    //    {
+    //        List<Contract> contracts = await _spaceTradersApiService.GetAllFromStarTradersApi<Contract>("my/contracts");
+    //        AddOrUpdateContracts(contracts);
+    //    }        
+    //}
+
+    public int GetContractsCount()
     {
-        if (_contracts.Count == 0)
-        {
-            List<Contract> contracts = await _spaceTradersApiService.GetAllFromStarTradersApi<Contract>("my/contracts");
-            AddOrUpdateContracts(contracts);
-        }        
+        return _contracts.Count;
     }
 
-    public async Task<List<string>> GetAllContracts()
+    public List<string> GetAllContracts()
     {
-        await EnsureAllContractsLoaded();
-
         return _contracts.Keys.ToList();
     }
 
-    public async Task<List<CargoWithDestination>> GetAllAcceptedContractCargo()
-    {
-        await EnsureAllContractsLoaded();
+    public List<CargoWithDestination> GetAllAcceptedContractCargo()
+    {        
         var acceptedContacts = _contracts.Values.Where(c => c.Accepted == true);
         var allCargo = acceptedContacts.SelectMany(x => x.Terms.Deliver);
         var goods = allCargo.Where(x=>x.UnitsFulfilled < x.UnitsRequired).Select(x=>new CargoWithDestination { TradeSymbol= x.TradeSymbol, DestinationWaypointSymbol=x.DestinationSymbol }).ToList();
