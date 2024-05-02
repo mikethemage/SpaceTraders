@@ -50,6 +50,10 @@ internal class Program
         //Add services:
         builder.Services.AddTransient<IShipService, ShipService>();
         builder.Services.AddTransient<IContractService, ContractService>();
+        builder.Services.AddTransient<IWaypointService, WaypointService>();
+        builder.Services.AddTransient<ILogInService, LogInService>();
+        builder.Services.AddTransient<ITransactionService, TransactionService>();
+        builder.Services.AddTransient<IIdleShipProcessingService, IdleShipProcessingService>();
 
 
         using IHost host = builder.Build();

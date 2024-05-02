@@ -1,18 +1,45 @@
 ﻿using SpaceTraders.Models;
 using SpaceTraders.Repositories;
 using SpaceTraders.Api.Models;
+using SpaceTraders.Api.Responses.ResponseData;
+using Microsoft.Extensions.Logging;
 
 namespace SpaceTraders.Services;
 
 internal class ContractService : IContractService
 {
+    private readonly ILogger<ContractService> _logger;
     private readonly IContractRepository _contractRepository;
     private readonly ISpaceTradersApiService _spaceTradersApiService;
+    private readonly IAgentRepository _agentRepository;
 
-    public ContractService(IContractRepository contractRepository, ISpaceTradersApiService spaceTradersApiService)
+    public ContractService(IContractRepository contractRepository, ISpaceTradersApiService spaceTradersApiService, ILogger<ContractService> logger, IAgentRepository agentRepository)
     {
         _contractRepository = contractRepository;
         _spaceTradersApiService = spaceTradersApiService;
+        _logger = logger;
+        _agentRepository = agentRepository;
+    }
+
+    public async Task<Contract> GetCurrentContract()
+    {
+        Contract? currentContract = GetFirstAcceptedContract();
+        if (currentContract == null)
+        {
+            Contract? nextContract = GetFirstContract();
+            if (nextContract == null)
+            {
+                //We have no contracts!!
+                throw new Exception("We have no contracts!!!");
+            }
+            AcceptContractResponseData acceptContractResponseData = await _spaceTradersApiService.PostToStarTradersApi<AcceptContractResponseData>($"my/contracts/{nextContract.Id}/accept");
+            _agentRepository.Agent = acceptContractResponseData.Agent;
+            currentContract = acceptContractResponseData.Contract;
+            AddOrUpdateContract(currentContract);
+            _logger.LogInformation("Accepted new contract");
+        }
+
+        return currentContract;
     }
 
     public async Task EnsureAllContractsLoaded()

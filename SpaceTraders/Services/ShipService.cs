@@ -1,7 +1,11 @@
-﻿using SpaceTraders.Api.Models;
+﻿using Microsoft.Extensions.Logging;
+using SpaceTraders.Api.Models;
+using SpaceTraders.Api.Requests;
+using SpaceTraders.Api.Responses.ResponseData;
 using SpaceTraders.Exceptions;
 using SpaceTraders.Models;
 using SpaceTraders.Repositories;
+using System.Text.Json;
 
 namespace SpaceTraders.Services;
 internal class ShipService : IShipService
@@ -9,12 +13,14 @@ internal class ShipService : IShipService
     private readonly ISpaceTradersApiService _spaceTradersApiService;
     private readonly IShipInfoRepository _shipInfoRepository;
     private readonly IShipRepository _shipRepository;
+    private readonly ILogger<ShipService> _logger;
 
-    public ShipService(ISpaceTradersApiService spaceTradersApiService, IShipInfoRepository shipInfoRepository, IShipRepository shipRepository)
+    public ShipService(ISpaceTradersApiService spaceTradersApiService, IShipInfoRepository shipInfoRepository, IShipRepository shipRepository, ILogger<ShipService> logger)
     {
         _spaceTradersApiService = spaceTradersApiService;
         _shipInfoRepository = shipInfoRepository;
         _shipRepository = shipRepository;
+        _logger = logger;
     }
 
     public void AddOrUpdateShip(Ship ship)
@@ -217,5 +223,54 @@ internal class ShipService : IShipService
                 _shipInfoRepository.ShipUpdated(shipSymbol, DateTime.UtcNow);
             }
         }        
+    }
+
+    public async Task JettisonCargo(string shipSymbol, string tradeSymbol)
+    {
+        ShipCargo? cargo = await GetShipCargo(shipSymbol);
+        if (cargo != null)
+        {
+            CargoRequest jettisonCargoRequest = new CargoRequest
+            {
+                Symbol = tradeSymbol,
+                Units = cargo.Inventory.Where(x => x.Symbol == tradeSymbol).Select(x => x.Units).FirstOrDefault()
+            };
+            JettisonCargoResponseData jettisonCargoResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<JettisonCargoResponseData, CargoRequest>($"my/ships/{shipSymbol}/jettison", jettisonCargoRequest);
+            UpdateCargo(shipSymbol, jettisonCargoResponseData.Cargo);
+        }
+    }
+
+
+    public async Task ExtractWithShip(string shipSymbol)
+    {
+        ExtractResponseData extractResponseData = await _spaceTradersApiService.PostToStarTradersApi<ExtractResponseData>($"my/ships/{shipSymbol}/extract");
+        UpdateCargo(shipSymbol, extractResponseData.Cargo);
+        UpdateCooldown(shipSymbol, extractResponseData.Cooldown);
+        _logger.LogInformation("Ship {shipSymbol} has extracted {extractResponseDataExtractionYieldUnits} {extractResponseDataExtractionYieldSymbol}", shipSymbol, extractResponseData.Extraction.Yield.Units, extractResponseData.Extraction.Yield.Symbol);
+        _logger.LogInformation("Ship {shipSymbol} is on cooldown until {shipCooldownExpiration:dd/MM/yyyy HH:mm:ss}", shipSymbol, extractResponseData.Cooldown.Expiration);
+    }
+
+    public async Task OrbitShip(string shipSymbol)
+    {
+        DockOrbitResponseData orbitResponse = await _spaceTradersApiService.PostToStarTradersApi<DockOrbitResponseData>($"my/ships/{shipSymbol}/orbit");
+        UpdateNav(shipSymbol, orbitResponse.Nav);
+    }
+
+    public async Task DockShip(string shipSymbol)
+    {
+        DockOrbitResponseData dockResponse = await _spaceTradersApiService.PostToStarTradersApi<DockOrbitResponseData>($"my/ships/{shipSymbol}/dock");
+        UpdateNav(shipSymbol, dockResponse.Nav);
+    }
+
+    public async Task NavigateShip(string shipSymbol, string destinationWaypointSymbol)
+    {
+        NavigateRequest navigateRequest = new NavigateRequest { WaypointSymbol = destinationWaypointSymbol };
+        NavigateResponseData navigateResponse = await _spaceTradersApiService.PostToStarTradersApiWithPayload<NavigateResponseData, NavigateRequest>($"my/ships/{shipSymbol}/navigate", navigateRequest);
+        UpdateFuel(shipSymbol, navigateResponse.Fuel);
+        UpdateNav(shipSymbol, navigateResponse.Nav);
+        foreach (ShipConditionEvent shipConditionEvent in navigateResponse.Events)
+        {
+            _logger.LogInformation("Ship: {shipSymbol} Ship Condition Event: {shipConditionEvent}", shipSymbol, JsonSerializer.Serialize(shipConditionEvent));
+        }
     }
 }

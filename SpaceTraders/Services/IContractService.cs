@@ -12,4 +12,5 @@ internal interface IContractService
     Contract? GetFirstAcceptedContract();
     void AddOrUpdateContract(Contract contract);
     Contract? GetFirstContract();
+    Task<Contract> GetCurrentContract();
 }

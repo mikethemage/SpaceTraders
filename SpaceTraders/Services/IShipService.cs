@@ -6,6 +6,8 @@ internal interface IShipService
     void AddOrUpdateShip(Ship ship);
     void AddOrUpdateShips(List<Ship> ships);
     void Clear();
+    Task DockShip(string shipSymbol);
+    Task ExtractWithShip(string shipSymbol);
     Task<List<string>> GetAllIdleMiningShips();
     Task<List<string>> GetAllMiningShips();
     Task<List<string>> GetAllShips();
@@ -16,6 +18,9 @@ internal interface IShipService
     Task<Cooldown?> GetShipCooldown(string shipSymbol);
     Task<ShipFuel?> GetShipFuel(string shipSymbol);
     Task<ShipNav?> GetShipNav(string shipSymbol);
+    Task JettisonCargo(string shipSymbol, string tradeSymbol);
+    Task NavigateShip(string shipSymbol, string destinationWaypointSymbol);
+    Task OrbitShip(string shipSymbol);
     void RemoveShip(string shipSymbol);
     void UpdateCargo(string shipSymbol, ShipCargo cargo);
     void UpdateCooldown(string shipSymbol, Cooldown cooldown);
