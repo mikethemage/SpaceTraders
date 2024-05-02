@@ -21,7 +21,6 @@ internal class SpaceTradersApp : BackgroundService
     private readonly IFactionRepository _factionRepository;
     private readonly ILogger<SpaceTradersApp> _logger;
     private readonly IMarketRepository _marketRepository;
-    private readonly IShipInfoRepository _shipInfoRepository;
     private readonly IShipService _shipService;
 
     public SpaceTradersApp(
@@ -33,7 +32,6 @@ internal class SpaceTradersApp : BackgroundService
         IFactionRepository factionRepository,
         ILogger<SpaceTradersApp> logger,
         IMarketRepository marketRepository,
-        IShipInfoRepository shipInfoRepository,
         IShipService shipService)
     {
         _agentRepository = agentRepository;        
@@ -44,7 +42,6 @@ internal class SpaceTradersApp : BackgroundService
         _factionRepository = factionRepository;
         _logger = logger;
         _marketRepository = marketRepository;
-        _shipInfoRepository = shipInfoRepository;
         _shipService = shipService;
     }
 
@@ -52,8 +49,7 @@ internal class SpaceTradersApp : BackgroundService
     {
         //Initization:
         _logger.LogInformation("Space Traders API");
-        //_shipInfoRepository.InitializeRepository();
-
+        
         //Log in:
         await LogIn();
 

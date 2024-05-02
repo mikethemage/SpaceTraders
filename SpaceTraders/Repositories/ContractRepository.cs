@@ -1,6 +1,5 @@
 ﻿using SpaceTraders.Api.Models;
 using SpaceTraders.Models;
-using SpaceTraders.Services;
 
 namespace SpaceTraders.Repositories;
 internal class ContractRepository : IContractRepository
@@ -43,16 +42,7 @@ internal class ContractRepository : IContractRepository
     {
         return _contracts.Select(c => c.Value).FirstOrDefault();
     }
-
-    //public async Task EnsureAllContractsLoaded()
-    //{
-    //    if (_contracts.Count == 0)
-    //    {
-    //        List<Contract> contracts = await _spaceTradersApiService.GetAllFromStarTradersApi<Contract>("my/contracts");
-    //        AddOrUpdateContracts(contracts);
-    //    }        
-    //}
-
+        
     public int GetContractsCount()
     {
         return _contracts.Count;
@@ -72,8 +62,7 @@ internal class ContractRepository : IContractRepository
     }
 
     public List<ContractWithCargo> GetAcceptedCargoForWaypoint(string waypointSymbol)
-    {
-        //return
+    {        
         return _contracts.SelectMany(x => 
             x.Value.Terms.Deliver.Where(y => y.DestinationSymbol == waypointSymbol).Select(z=>
             new ContractWithCargo
