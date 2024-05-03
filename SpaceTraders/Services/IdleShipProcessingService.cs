@@ -2,7 +2,6 @@
 using SpaceTraders.Api.Models;
 using SpaceTraders.Api.Requests;
 using SpaceTraders.Models;
-using SpaceTraders.Repositories;
 
 namespace SpaceTraders.Services;
 
@@ -13,16 +12,22 @@ internal class IdleShipProcessingService : IIdleShipProcessingService
     private readonly IShipService _shipService;
     private readonly ITransactionService _transactionService;
     private readonly IWaypointService _waypointService;
-    private readonly IMarketRepository _marketRepository;
+    private readonly IMarketService _marketService;
 
-    public IdleShipProcessingService(ILogger<IdleShipProcessingService> logger, IContractService contractService, IShipService shipService, ITransactionService transactionService, IWaypointService waypointService, IMarketRepository marketRepository)
+    public IdleShipProcessingService(
+        ILogger<IdleShipProcessingService> logger,
+        IContractService contractService,
+        IShipService shipService,
+        ITransactionService transactionService,
+        IWaypointService waypointService,
+        IMarketService marketService)
     {
         _logger = logger;
         _contractService = contractService;
         _shipService = shipService;
         _transactionService = transactionService;
         _waypointService = waypointService;
-        _marketRepository = marketRepository;
+        _marketService = marketService;
     }
 
     public async Task ProcessIdleShip(string shipSymbol)
@@ -43,7 +48,7 @@ internal class IdleShipProcessingService : IIdleShipProcessingService
         if (fuel.Current * 4 < fuel.Capacity)
         {
             _logger.LogInformation("Ship {shipSymbol} is low on fuel.", shipSymbol);
-            if (await _marketRepository.MarketSellsGood(nav.SystemSymbol, nav.WaypointSymbol, "FUEL"))
+            if (await _marketService.MarketSellsGood(nav.SystemSymbol, nav.WaypointSymbol, "FUEL"))
             {
                 if (nav.Status == ShipNavStatus.DOCKED)
                 {
@@ -179,7 +184,7 @@ internal class IdleShipProcessingService : IIdleShipProcessingService
             }
             else
             {
-                WaypointWithDistance? destinationWaypointWithDistance = await _marketRepository.GetNearestMarketSellingGood(nav.SystemSymbol, nav.WaypointSymbol, cargoToSell.First().Symbol);
+                WaypointWithDistance? destinationWaypointWithDistance = await _marketService.GetNearestMarketSellingGood(nav.SystemSymbol, nav.WaypointSymbol, cargoToSell.First().Symbol);
                 if (destinationWaypointWithDistance == null)
                 {
                     destinationWaypointSymbol = null;
@@ -263,7 +268,7 @@ internal class IdleShipProcessingService : IIdleShipProcessingService
     private async Task<ShipNav> SendShipToRefuellingStation(string shipSymbol, ShipNav nav, ShipFuel fuel)
     {
         // Need to refuel               
-        WaypointWithDistance? targetFuelStation = await _marketRepository.GetNearestMarketSellingGood(nav.SystemSymbol, nav.WaypointSymbol, "FUEL");
+        WaypointWithDistance? targetFuelStation = await _marketService.GetNearestMarketSellingGood(nav.SystemSymbol, nav.WaypointSymbol, "FUEL");
         if (targetFuelStation == null)
         {
             throw new Exception("No fuel station found!");
