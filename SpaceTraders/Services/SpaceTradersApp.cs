@@ -6,23 +6,23 @@ namespace SpaceTraders.Services;
 internal class SpaceTradersApp : BackgroundService
 {
     private readonly ILogger<SpaceTradersApp> _logger;
-    
+
     private readonly IShipService _shipService;
-    private readonly ILogInService _logInService;   
-    private readonly IWaypointService _waypointService; 
+    private readonly ILogInService _logInService;
+    private readonly IWaypointService _waypointService;
     private readonly IIdleShipProcessingService _idleShipProcessingService;
 
     public SpaceTradersApp(
-        ILogger<SpaceTradersApp> logger,       
-        IWaypointService waypointService, 
+        ILogger<SpaceTradersApp> logger,
+        IWaypointService waypointService,
         IShipService shipService,
         ILogInService logInService,
         IIdleShipProcessingService idleShipProcessingService)
-    {        
-        _waypointService = waypointService;       
-        _logger = logger;        
+    {
+        _waypointService = waypointService;
+        _logger = logger;
         _shipService = shipService;
-        _logInService = logInService;        
+        _logInService = logInService;
         _idleShipProcessingService = idleShipProcessingService;
     }
 

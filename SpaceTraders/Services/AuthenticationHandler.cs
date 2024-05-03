@@ -1,6 +1,6 @@
-﻿using System.Net.Http.Headers;
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using SpaceTraders.Repositories;
+using System.Net.Http.Headers;
 
 namespace SpaceTraders.Services;
 

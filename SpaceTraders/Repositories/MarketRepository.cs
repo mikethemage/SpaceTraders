@@ -3,23 +3,23 @@
 namespace SpaceTraders.Repositories;
 internal class MarketRepository : IMarketRepository
 {
-    private readonly Dictionary<string, Market> _markets = new Dictionary<string, Market>();    
+    private readonly Dictionary<string, Market> _markets = new Dictionary<string, Market>();
 
     public MarketRepository()
     {
-        
+
     }
 
     public Market? GetMarket(string waypointSymbol)
     {
-        if(_markets.ContainsKey(waypointSymbol))
+        if (_markets.ContainsKey(waypointSymbol))
         {
             return _markets[waypointSymbol];
         }
         else
         {
             return null;
-        }        
+        }
     }
 
     public void AddOrUpdateMarket(Market marketToAdd)
@@ -28,7 +28,7 @@ internal class MarketRepository : IMarketRepository
         _markets.Add(marketToAdd.Symbol, marketToAdd);
     }
 
-    public void RemoveMarket(string symbol) 
+    public void RemoveMarket(string symbol)
     {
         _markets.Remove(symbol);
     }

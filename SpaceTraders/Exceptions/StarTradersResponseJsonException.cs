@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-
-namespace SpaceTraders.Exceptions;
+﻿namespace SpaceTraders.Exceptions;
 [Serializable]
 internal class StarTradersResponseJsonException : Exception
 {

@@ -1,7 +1,6 @@
 ﻿using SpaceTraders.Api.Responses;
 using SpaceTraders.Api.Responses.ResponseData;
 using SpaceTraders.Exceptions;
-using SpaceTraders.Repositories;
 using System.Net.Http.Json;
 
 namespace SpaceTraders.Services;
@@ -10,16 +9,16 @@ internal class SpaceTradersApiService : ISpaceTradersApiService
 {
     private readonly HttpClient _httpClient;
     private readonly IErrorDecoder _errorDecoder;
-    private readonly IThrottleService _throttleService;       
+    private readonly IThrottleService _throttleService;
 
     public SpaceTradersApiService(HttpClient httpClient, IErrorDecoder errorDecoder, IThrottleService throttleService)
     {
         _httpClient = httpClient;
         _httpClient.BaseAddress = new Uri("https://api.spacetraders.io/v2/");
         _errorDecoder = errorDecoder;
-        _throttleService = throttleService;   
+        _throttleService = throttleService;
     }
-       
+
     public async Task<List<T>> GetAllFromStarTradersApi<T>(string requestUri)
     {
         int page = 1;
@@ -30,11 +29,11 @@ internal class SpaceTradersApiService : ISpaceTradersApiService
         {
             keepGoing = false;
             await _throttleService.Throttle();
-           
-            using HttpResponseMessage response = await _httpClient.GetAsync($"{requestUri}?page={page}");            
+
+            using HttpResponseMessage response = await _httpClient.GetAsync($"{requestUri}?page={page}");
 
             if (response.IsSuccessStatusCode)
-            {                
+            {
                 SuccessResponse<List<T>>? registerResponse = await response.Content.ReadFromJsonAsync<SuccessResponse<List<T>>>();
                 if (registerResponse != null)
                 {
@@ -44,7 +43,7 @@ internal class SpaceTradersApiService : ISpaceTradersApiService
                         if (registerResponse.Meta.Total > registerResponse.Meta.Limit * registerResponse.Meta.Page)
                         {
                             page++;
-                            keepGoing = true;                            
+                            keepGoing = true;
                         }
                     }
                 }
@@ -65,18 +64,18 @@ internal class SpaceTradersApiService : ISpaceTradersApiService
     public async Task<T> GetFromStarTradersApi<T>(string requestUri)
     {
         await _throttleService.Throttle();
-        
+
         using HttpResponseMessage response = await _httpClient.GetAsync(requestUri);
-        
+
         return await ReadApiResponse<T>(response);
     }
 
     public async Task<T> PostToStarTradersApiWithPayload<T, U>(string requestUri, U request)
     {
         await _throttleService.Throttle();
-       
+
         using HttpResponseMessage response = await _httpClient.PostAsJsonAsync(requestUri, request);
-        
+
         return await ReadApiResponse<T>(response);
     }
 
@@ -85,16 +84,16 @@ internal class SpaceTradersApiService : ISpaceTradersApiService
         // Create empty content
         HttpContent content = new StringContent("");
         await _throttleService.Throttle();
-        
+
         using HttpResponseMessage response = await _httpClient.PostAsync(requestUri, content);
-        
+
         return await ReadApiResponse<T>(response);
     }
 
     private async Task<T> ReadApiResponse<T>(HttpResponseMessage response)
     {
         if (response.IsSuccessStatusCode)
-        {            
+        {
             SuccessResponse<T>? registerResponse = await response.Content.ReadFromJsonAsync<SuccessResponse<T>>();
             if (registerResponse != null)
             {
@@ -102,7 +101,7 @@ internal class SpaceTradersApiService : ISpaceTradersApiService
             }
             else
             {
-                throw new StarTradersResponseJsonException(await response.Content.ReadAsStringAsync());                             
+                throw new StarTradersResponseJsonException(await response.Content.ReadAsStringAsync());
             }
         }
         else

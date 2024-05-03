@@ -1,6 +1,4 @@
-﻿using SpaceTraders.Api.Responses.ResponseData.Errors;
-
-namespace SpaceTraders.Api.Responses.ResponseData;
+﻿namespace SpaceTraders.Api.Responses.ResponseData;
 
 internal class UnknownErrorResponseData : IErrorResponseData
 {

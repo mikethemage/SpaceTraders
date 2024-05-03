@@ -2,7 +2,7 @@
 
 namespace SpaceTraders.Services;
 internal interface IShipService
-{   
+{
     void AddOrUpdateShip(Ship ship);
     void AddOrUpdateShips(List<Ship> ships);
     void Clear();

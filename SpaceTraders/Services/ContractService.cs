@@ -1,8 +1,8 @@
-﻿using SpaceTraders.Models;
-using SpaceTraders.Repositories;
+﻿using Microsoft.Extensions.Logging;
 using SpaceTraders.Api.Models;
 using SpaceTraders.Api.Responses.ResponseData;
-using Microsoft.Extensions.Logging;
+using SpaceTraders.Models;
+using SpaceTraders.Repositories;
 
 namespace SpaceTraders.Services;
 

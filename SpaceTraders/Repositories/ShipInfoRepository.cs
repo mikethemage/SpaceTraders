@@ -38,7 +38,7 @@ internal class ShipInfoRepository : IShipInfoRepository
 
     public List<string> GetMissingShips(List<string> apiShipSymbols)
     {
-        return _shipInfo.Keys.Where(x=>!apiShipSymbols.Contains(x)).ToList();
+        return _shipInfo.Keys.Where(x => !apiShipSymbols.Contains(x)).ToList();
     }
 
     public List<string> GetAllMiningShips()

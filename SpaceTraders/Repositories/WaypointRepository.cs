@@ -9,7 +9,7 @@ internal class WaypointRepository : IWaypointRepository
 
     public WaypointType? GetWaypointType(string systemSymbol, string waypointSymbol)
     {
-        if(_waypoints.ContainsKey(systemSymbol) && _waypoints[systemSymbol].ContainsKey(waypointSymbol))
+        if (_waypoints.ContainsKey(systemSymbol) && _waypoints[systemSymbol].ContainsKey(waypointSymbol))
         {
             return _waypoints[systemSymbol][waypointSymbol].Type;
         }
@@ -33,7 +33,7 @@ internal class WaypointRepository : IWaypointRepository
 
     public void AddOrUpdateWaypoint(Waypoint waypointToAdd)
     {
-        if(!_waypoints.ContainsKey(waypointToAdd.SystemSymbol))
+        if (!_waypoints.ContainsKey(waypointToAdd.SystemSymbol))
         {
             _waypoints.Add(waypointToAdd.SystemSymbol, new Dictionary<string, Waypoint>());
         }
@@ -43,8 +43,8 @@ internal class WaypointRepository : IWaypointRepository
 
     public Waypoint? GetWaypoint(string systemSymbol, string waypointSymbol)
     {
-        if(_waypoints.ContainsKey(systemSymbol) && _waypoints[systemSymbol].ContainsKey(waypointSymbol))
-        {            
+        if (_waypoints.ContainsKey(systemSymbol) && _waypoints[systemSymbol].ContainsKey(waypointSymbol))
+        {
             return _waypoints[systemSymbol][waypointSymbol];
         }
         else
@@ -55,7 +55,7 @@ internal class WaypointRepository : IWaypointRepository
 
     public string? GetNearestWaypointOfType(string systemSymbol, string sourceWaypointSymbol, WaypointType waypointType)
     {
-        if(_waypoints.ContainsKey(systemSymbol) && _waypoints[systemSymbol].ContainsKey(sourceWaypointSymbol))
+        if (_waypoints.ContainsKey(systemSymbol) && _waypoints[systemSymbol].ContainsKey(sourceWaypointSymbol))
         {
             Waypoint sourceWaypoint = _waypoints[systemSymbol][sourceWaypointSymbol];
             //Get nearest mining site:
@@ -78,12 +78,12 @@ internal class WaypointRepository : IWaypointRepository
         else
         {
             return null;
-        }        
+        }
     }
 
     public List<WaypointWithDistance> GetWaypointsWithTraitsFromLocation(string systemSymbol, string sourceWaypointSymbol, WaypointTraitSymbol requiredTrait)
     {
-        if(_waypoints.ContainsKey(systemSymbol) && _waypoints[systemSymbol].ContainsKey(sourceWaypointSymbol))
+        if (_waypoints.ContainsKey(systemSymbol) && _waypoints[systemSymbol].ContainsKey(sourceWaypointSymbol))
         {
             Waypoint sourceWaypoint = _waypoints[systemSymbol][sourceWaypointSymbol];
             return _waypoints[systemSymbol]
@@ -102,6 +102,6 @@ internal class WaypointRepository : IWaypointRepository
         {
             return new List<WaypointWithDistance>();
         }
-        
+
     }
 }

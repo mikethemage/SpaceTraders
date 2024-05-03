@@ -8,7 +8,7 @@ public class TokenRepository : ITokenRepository
 
     public async Task<string?> GetTokenAsync()
     {
-        if (_token==null && fileLoaded == false)
+        if (_token == null && fileLoaded == false)
         {
             await LoadTokenFromFile();
             fileLoaded = true;
@@ -37,7 +37,7 @@ public class TokenRepository : ITokenRepository
 
     private async Task SaveTokenToFile()
     {
-        if(_token != null)
+        if (_token != null)
         {
             await File.WriteAllTextAsync(filename, _token);
         }

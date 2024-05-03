@@ -4,20 +4,20 @@ namespace SpaceTraders.Repositories;
 internal class ShipRepository : IShipRepository
 {
     private readonly Dictionary<string, Ship> _ships = new Dictionary<string, Ship>();
-    
+
     public ShipRepository()
-    {        
+    {
     }
 
     public void AddOrUpdateShip(Ship ship)
     {
         _ships.Remove(ship.Symbol);
-        _ships.Add(ship.Symbol, ship);        
+        _ships.Add(ship.Symbol, ship);
     }
 
     public void RemoveShip(string shipSymbol)
     {
-        _ships.Remove(shipSymbol);        
+        _ships.Remove(shipSymbol);
     }
 
     public void AddOrUpdateShips(List<Ship> ships)
@@ -33,7 +33,7 @@ internal class ShipRepository : IShipRepository
         if (_ships.ContainsKey(shipSymbol))
         {
             return _ships[shipSymbol];
-        }        
+        }
         else
         {
             return null;
@@ -43,23 +43,23 @@ internal class ShipRepository : IShipRepository
     public int GetShipCount()
     {
         return _ships.Count;
-    }    
+    }
 
     public List<string> GetAllShips()
     {
         return _ships.Keys.ToList();
-    }    
+    }
 
     public List<string> GetAllSystemsWithShips()
     {
         return _ships.Values.Select(ship => ship.Nav.SystemSymbol).Distinct().ToList();
-    }       
+    }
 
     public List<string> GetAllIdleMiningShips(List<string> miningShipSymbols)
-    {        
+    {
         return _ships.Where(s => miningShipSymbols.Contains(s.Key))
-            .Where(s=>s.Value.Cooldown == null || s.Value.Cooldown.Expiration < DateTime.UtcNow)
-            .Where(s=>s.Value.Nav == null || s.Value.Nav.Route == null || s.Value.Nav.Route.Arrival < DateTime.UtcNow)            
+            .Where(s => s.Value.Cooldown == null || s.Value.Cooldown.Expiration < DateTime.UtcNow)
+            .Where(s => s.Value.Nav == null || s.Value.Nav.Route == null || s.Value.Nav.Route.Arrival < DateTime.UtcNow)
             .Select(x => x.Key).ToList();
     }
 
@@ -84,7 +84,7 @@ internal class ShipRepository : IShipRepository
 
     public void Clear()
     {
-        _ships.Clear();        
+        _ships.Clear();
     }
 
     public bool UpdateNav(string shipSymbol, ShipNav nav)
@@ -102,7 +102,7 @@ internal class ShipRepository : IShipRepository
     {
         Ship? shipToUpdate = GetShip(shipSymbol);
         if (shipToUpdate != null)
-        {            
+        {
             _ships[shipSymbol].Fuel = fuel;
             return true;
         }

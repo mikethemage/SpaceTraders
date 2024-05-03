@@ -40,7 +40,7 @@ internal class MarketService : IMarketService
             {
                 market = await RefreshMarket(systemSymbol, possibleMarket.WaypointSymbol);
             }
-            
+
             if (market != null && (market.Exports.Any(e => e.Symbol == tradeGood)
                 || market.Exchange.Any(e => e.Symbol == tradeGood)
                 ))
@@ -61,7 +61,7 @@ internal class MarketService : IMarketService
             {
                 market = await RefreshMarket(systemSymbol, possibleMarket.WaypointSymbol);
             }
-            
+
             if (market != null && market.Imports.Any(e => e.Symbol == tradeGood))
             {
                 return possibleMarket;
@@ -72,13 +72,13 @@ internal class MarketService : IMarketService
 
     public async Task<bool> MarketSellsGood(string systemSymbol, string waypointSymbol, string tradeGood)
     {
-        Market? market = _marketRepository.GetMarket(waypointSymbol); 
-        
+        Market? market = _marketRepository.GetMarket(waypointSymbol);
+
         if (market == null)
         {
             market = await RefreshMarket(systemSymbol, waypointSymbol);
         }
-        
+
         if (market != null && (market.Exports.Any(e => e.Symbol == tradeGood)
             || market.Exchange.Any(e => e.Symbol == tradeGood)
             ))

@@ -1,5 +1,4 @@
 ﻿using SpaceTraders.Api.Responses.ResponseData;
-using System.Runtime.Serialization;
 
 namespace SpaceTraders.Exceptions;
 [Serializable]

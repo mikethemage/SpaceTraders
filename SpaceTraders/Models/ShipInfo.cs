@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace SpaceTraders.Models;
+﻿namespace SpaceTraders.Models;
 internal class ShipInfo
 {
     public string ShipSymbol { get; set; } = string.Empty;

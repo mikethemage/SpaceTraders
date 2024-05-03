@@ -1,10 +1,10 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Options;
+using SpaceTraders.Models;
 using SpaceTraders.Repositories;
 using SpaceTraders.Services;
-using SpaceTraders.Models;
-using Microsoft.Extensions.Options;
 
 namespace SpaceTraders;
 
@@ -41,7 +41,7 @@ internal class Program
 
         //Add authentication handler:
         builder.Services.AddTransient<AuthenticationHandler>();
-        
+
         builder.Services.AddTransient<IErrorDecoder, ErrorDecoder>();
 
         // Add the SpaceTradersApp class itself
