@@ -55,7 +55,6 @@ internal class Program
         builder.Services.AddTransient<ITransactionService, TransactionService>();
         builder.Services.AddTransient<IIdleShipProcessingService, IdleShipProcessingService>();
 
-
         using IHost host = builder.Build();
 
         await host.RunAsync();

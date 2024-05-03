@@ -2,7 +2,6 @@
 using SpaceTraders.Api.Models;
 using SpaceTraders.Api.Requests;
 using SpaceTraders.Api.Responses.ResponseData;
-using SpaceTraders.Exceptions;
 using SpaceTraders.Models;
 using SpaceTraders.Repositories;
 using System.Text.Json;
@@ -239,7 +238,6 @@ internal class ShipService : IShipService
             UpdateCargo(shipSymbol, jettisonCargoResponseData.Cargo);
         }
     }
-
 
     public async Task ExtractWithShip(string shipSymbol)
     {
