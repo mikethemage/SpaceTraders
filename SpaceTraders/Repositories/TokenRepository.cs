@@ -1,10 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace SpaceTraders.Repositories;
 
-namespace SpaceTraders.Repositories;
 public class TokenRepository : ITokenRepository
 {
     const string filename = "Token.txt";

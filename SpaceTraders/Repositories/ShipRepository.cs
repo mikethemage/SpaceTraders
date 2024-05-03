@@ -1,7 +1,4 @@
 ﻿using SpaceTraders.Api.Models;
-using SpaceTraders.Exceptions;
-using SpaceTraders.Models;
-using SpaceTraders.Services;
 
 namespace SpaceTraders.Repositories;
 internal class ShipRepository : IShipRepository
