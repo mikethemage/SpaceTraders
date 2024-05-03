@@ -32,105 +32,201 @@ internal class IdleShipProcessingService : IIdleShipProcessingService
 
     public async Task ProcessIdleShip(string shipSymbol)
     {
-        ShipNav? nav = await _shipService.GetShipNav(shipSymbol);
-        if (nav == null)
+        var nav = await _shipService.GetShipNav(shipSymbol) ?? throw new Exception("Error getting ship nav!");
+        var fuel = await _shipService.GetShipFuel(shipSymbol) ?? throw new Exception("Error getting ship fuel!");
+
+        if (ShouldRefuel(fuel))
         {
-            throw new Exception("Error getting ship nav!");
-        }
-
-
-        ShipFuel? fuel = await _shipService.GetShipFuel(shipSymbol);
-        if (fuel == null)
-        {
-            throw new Exception("Error getting ship fuel!");
-        }
-
-        if (fuel.Current * 4 < fuel.Capacity)
-        {
-            _logger.LogInformation("Ship {shipSymbol} is low on fuel.", shipSymbol);
-            if (await _marketService.MarketSellsGood(nav.SystemSymbol, nav.WaypointSymbol, "FUEL"))
-            {
-                if (nav.Status == ShipNavStatus.DOCKED)
-                {
-                    //Refuel
-                    await _transactionService.RefuelShip(shipSymbol);
-                    _logger.LogInformation("Ship {shipSymbol} refueled.", shipSymbol);
-                }
-                else
-                {
-                    await _shipService.DockShip(shipSymbol);
-                    _logger.LogInformation("Ship {shipSymbol} docked at refueling station.", shipSymbol);
-                }
-            }
-            else
-            {
-                if (nav.Status == ShipNavStatus.DOCKED)
-                {
-                    //Need to undock
-                    await _shipService.OrbitShip(shipSymbol);
-                    _logger.LogInformation("Undocked");
-
-                }
-                else
-                {
-                    nav = await SendShipToRefuellingStation(shipSymbol, nav, fuel);
-                }
-            }
+            await CheckAndHandleRefueling(shipSymbol, nav, fuel);
             return;
         }
 
-        ShipCargo? cargo = await _shipService.GetShipCargo(shipSymbol);
-        if (cargo == null)
+        var cargo = await _shipService.GetShipCargo(shipSymbol) ?? throw new Exception("Error getting ship cargo!");
+
+        if (ShouldSellCargo(cargo, nav))
         {
-            throw new Exception("Error getting ship cargo!");
+            await CheckAndHandleCargoSelling(shipSymbol, nav, cargo, fuel);
+            return;
         }
 
-        bool needToSellCargo = false;
-        //Ship is not busy and doesn't need to refuel?:
-        //Are we at a Mining Site?
-        if (_waypointService.GetWaypointType(nav.SystemSymbol, nav.WaypointSymbol) == WaypointType.ENGINEERED_ASTEROID)
+        await MineOrbit(shipSymbol, nav, cargo);
+    }
+
+    private async Task CheckAndHandleRefueling(string shipSymbol, ShipNav nav, ShipFuel fuel)
+    {
+        if (await _marketService.MarketSellsGood(nav.SystemSymbol, nav.WaypointSymbol, "FUEL"))
         {
-            //Yes:
-            //Is Cargo Bay Full?
-            if (cargo.Units == cargo.Capacity)
+            if (nav.Status == ShipNavStatus.DOCKED)
             {
-                //Yes:
-                //Go to sell cargo
-                _logger.LogInformation("Ship {shipSymbol} needs to sell cargo", shipSymbol);
-                needToSellCargo = true;
+                await _transactionService.RefuelShip(shipSymbol);
+                _logger.LogInformation("Ship {shipSymbol} refueled.", shipSymbol);
             }
             else
             {
-                //No:
-                //Keep Mining:
-                if (nav.Status == ShipNavStatus.IN_ORBIT)
-                {
-                    //Extract
-                    await _shipService.ExtractWithShip(shipSymbol);
-
-                }
-                else
-                {
-                    //Orbit
-                    await _shipService.OrbitShip(shipSymbol);
-                    _logger.LogInformation("Ship {ship} entered orbit, ready to mine at {waypoint}", shipSymbol, nav.WaypointSymbol);
-
-                }
+                await _shipService.DockShip(shipSymbol);
+                _logger.LogInformation("Ship {shipSymbol} docked at refueling station.", shipSymbol);
             }
         }
         else
         {
-            //No:
-            //Is Cargo Bay Empty and is it a cargo ship????
+            if (nav.Status == ShipNavStatus.DOCKED)
+            {
+                await _shipService.OrbitShip(shipSymbol);
+                _logger.LogInformation("Undocked");
+            }
+            else
+            {
+                await SendShipToRefuellingStation(shipSymbol, nav, fuel);
+            }
+        }
+    }
+
+    private bool ShouldRefuel(ShipFuel fuel)
+    {
+        return fuel.Current * 4 < fuel.Capacity;
+    }
+
+    private async Task CheckAndHandleCargoSelling(string shipSymbol, ShipNav nav, ShipCargo cargo, ShipFuel fuel)
+    {
+        Contract currentContract = await _contractService.GetCurrentContract();
+
+        string? destinationWaypointSymbol = await FindDestinationWaypointForCargo(nav, cargo, currentContract, fuel);
+
+        if (destinationWaypointSymbol == null)
+        {
+            throw new Exception("No suitable destination found to sell cargo!");
+        }
+
+        if (nav.WaypointSymbol == destinationWaypointSymbol)
+        {
+            await HandleDockedSelling(shipSymbol, nav, cargo);
+        }
+        else
+        {
+            await HandleUndockedSelling(shipSymbol, nav, destinationWaypointSymbol);
+        }
+    }
+
+    private async Task<string?> FindDestinationWaypointForCargo(ShipNav nav, ShipCargo cargo, Contract currentContract, ShipFuel fuel)
+    {
+        if (HasContractCargo(cargo, currentContract))
+        {
+            return FindContractDestination(cargo.Inventory, currentContract);
+        }
+        else
+        {
+            return await FindNearestMarketDestination(nav, cargo.Inventory, fuel);
+        }
+    }
+
+    private bool HasContractCargo(ShipCargo cargo, Contract currentContract)
+    {
+        return currentContract != null && currentContract.Terms.Deliver.Any(deliver => cargo.Inventory.Any(item => item.Symbol == deliver.TradeSymbol));
+    }
+
+    private string? FindContractDestination(List<ShipCargoItem> cargoItems, Contract currentContract)
+    {
+        foreach (ContractDeliverGood deliver in currentContract.Terms.Deliver)
+        {
+            if (cargoItems.Any(item => item.Symbol == deliver.TradeSymbol))
+            {
+                return deliver.DestinationSymbol;
+            }
+        }
+        return null;
+    }
+
+    private async Task<string?> FindNearestMarketDestination(ShipNav nav, List<ShipCargoItem> cargoItems, ShipFuel fuel)
+    {
+        foreach (ShipCargoItem cargoItem in cargoItems)
+        {
+            WaypointWithDistance? destination = await _marketService.GetNearestMarketSellingGood(nav.SystemSymbol, nav.WaypointSymbol, cargoItem.Symbol);
+            if (destination != null && destination.Distance <= fuel.Current)
+            {
+                return destination.WaypointSymbol;
+            }
+        }
+        return null;
+    }
+
+    private async Task HandleDockedSelling(string shipSymbol, ShipNav nav, ShipCargo cargo)
+    {
+        _logger.LogInformation("{shipSymbol} needs to sell cargo!", shipSymbol);
+
+        if (nav.Status != ShipNavStatus.DOCKED)
+        {
+            await _shipService.DockShip(shipSymbol);
+        }
+        else
+        {
+            await SellCargo(shipSymbol, cargo);
+        }
+    }
+
+    private async Task HandleUndockedSelling(string shipSymbol, ShipNav nav, string destinationWaypointSymbol)
+    {
+        if (nav.Status == ShipNavStatus.DOCKED)
+        {
+            await _shipService.OrbitShip(shipSymbol);
+            _logger.LogInformation("Undocked");
+        }
+        else
+        {
+            await _shipService.NavigateShip(shipSymbol, destinationWaypointSymbol);
+            nav = await _shipService.GetShipNav(shipSymbol) ?? throw new Exception("Error getting ship nav!");
+
+            _logger.LogInformation("Ship {shipSymbol} going to sell cargo at {destinationSymbol}. Eta: {shipNavRouteArrival:dd/MM/yyyy HH:mm:ss}", shipSymbol, destinationWaypointSymbol, nav.Route.Arrival);
+        }
+    }
+
+    private async Task SellCargo(string shipSymbol, ShipCargo cargo)
+    {
+        if (cargo.Inventory.Count > 0)
+        {
+            CargoRequest sellCargoRequest = new CargoRequest
+            {
+                Symbol = cargo.Inventory.First().Symbol,
+                Units = cargo.Inventory.First().Units
+            };
+
+            await _transactionService.SellCargo(shipSymbol, sellCargoRequest);
+        }
+    }
+
+    private bool ShouldSellCargo(ShipCargo cargo, ShipNav nav)
+    {
+        if (_waypointService.GetWaypointType(nav.SystemSymbol, nav.WaypointSymbol) == WaypointType.ENGINEERED_ASTEROID)
+        {
+            return cargo.Units == cargo.Capacity;
+        }
+        else
+        {
+            return cargo.Units == 0 && cargo.Capacity > 0;
+        }
+    }
+
+    private async Task MineOrbit(string shipSymbol, ShipNav nav, ShipCargo cargo)
+    {
+        if (_waypointService.GetWaypointType(nav.SystemSymbol, nav.WaypointSymbol) == WaypointType.ENGINEERED_ASTEROID)
+        {
+            if (cargo.Units < cargo.Capacity && nav.Status == ShipNavStatus.IN_ORBIT)
+            {
+                await _shipService.ExtractWithShip(shipSymbol);
+            }
+            else if (nav.Status != ShipNavStatus.IN_ORBIT)
+            {
+                await _shipService.OrbitShip(shipSymbol);
+                _logger.LogInformation("Ship {ship} entered orbit, ready to mine at {waypoint}", shipSymbol, nav.WaypointSymbol);
+            }
+        }
+        else
+        {
             if (cargo.Units == 0 && cargo.Capacity > 0)
             {
-                //Yes:                           
                 if (nav.Status == ShipNavStatus.DOCKED)
                 {
-                    //Need to undock
                     await _shipService.OrbitShip(shipSymbol);
                     _logger.LogInformation("Undocked");
-
                 }
                 else
                 {
@@ -140,132 +236,16 @@ internal class IdleShipProcessingService : IIdleShipProcessingService
                         throw new Exception("Can't find mining site!");
                     }
 
-                    //Go to Mining Site:
                     await _shipService.NavigateShip(shipSymbol, targetMiningSite);
-                    nav = await _shipService.GetShipNav(shipSymbol);
-                    if (nav == null)
-                    {
-                        throw new Exception("Error getting ship nav!");
-                    }
+                    nav = await _shipService.GetShipNav(shipSymbol) ?? throw new Exception("Error getting ship nav!");
+                    
                     _logger.LogInformation("Ship {shipSymbol} going to mine at {targetMiningSiteSymbol}. Eta: {ship.NavRouteArrival:dd/MM/yyyy HH:mm:ss}", shipSymbol, targetMiningSite, nav.Route.Arrival);
-
-                }
-            }
-            else
-            {
-                //No:
-                //Go to sell cargo
-                _logger.LogInformation("Ship {shipSymbol} needs to sell cargo", shipSymbol);
-                needToSellCargo = true;
-            }
-        }
-        if (needToSellCargo)
-        {
-            // Find current contract
-            Contract currentContract = await _contractService.GetCurrentContract();
-
-            string? destinationWaypointSymbol = null;
-            bool haveContractCargo = false;
-            //Do we have any of contract cargo???
-            foreach (ContractDeliverGood contractDeliverable in currentContract.Terms.Deliver)
-            {
-                if (cargo.Inventory.Any(x => x.Symbol == contractDeliverable.TradeSymbol))
-                {
-                    haveContractCargo = true;
-                    destinationWaypointSymbol = contractDeliverable.DestinationSymbol;
-                    break;
-                }
-            }
-
-            List<ShipCargoItem> cargoToSell = cargo.Inventory;
-            if (haveContractCargo)
-            {
-                cargoToSell = cargoToSell.Where(x => currentContract.Terms.Deliver.Select(y => y.TradeSymbol).Contains(x.Symbol)).ToList();
-            }
-            else
-            {
-                WaypointWithDistance? destinationWaypointWithDistance = await _marketService.GetNearestMarketSellingGood(nav.SystemSymbol, nav.WaypointSymbol, cargoToSell.First().Symbol);
-                if (destinationWaypointWithDistance == null)
-                {
-                    destinationWaypointSymbol = null;
-                }
-                else
-                {
-                    if (destinationWaypointWithDistance.Distance > fuel.Current)
-                    {
-                        if (fuel.Current < fuel.Capacity)
-                        {
-                            nav = await SendShipToRefuellingStation(shipSymbol, nav, fuel);
-                            return;
-                        }
-                        else
-                        {
-                            await _shipService.JettisonCargo(shipSymbol, cargoToSell.First().Symbol);
-                            return;
-                        }
-                    }
-                    else
-                    {
-                        destinationWaypointSymbol = destinationWaypointWithDistance.WaypointSymbol;
-                    }
-                }
-            }
-
-            if (destinationWaypointSymbol == null)
-            {
-                throw new Exception("No marketplaces!");
-            }
-
-            if (nav.WaypointSymbol == destinationWaypointSymbol)
-            {
-                //Dock and sell cargo
-                _logger.LogInformation("{shipSymbol} needs to sell cargo!", shipSymbol);
-
-                if (nav.Status != ShipNavStatus.DOCKED)
-                {
-                    //need to dock
-                    await _shipService.DockShip(shipSymbol);
-                }
-                else
-                {
-                    if (cargoToSell.Count > 0)
-                    {
-                        //Sell Cargo
-                        CargoRequest sellCargoRequest = new CargoRequest
-                        {
-                            Symbol = cargoToSell.First().Symbol,
-                            Units = cargoToSell.First().Units
-                        };
-
-                        await _transactionService.SellCargo(shipSymbol, sellCargoRequest);
-                    }
-                }
-            }
-            else
-            {
-                if (nav.Status == ShipNavStatus.DOCKED)
-                {
-                    //Need to undock
-                    await _shipService.OrbitShip(shipSymbol);
-                    _logger.LogInformation("Undocked");
-                }
-                else
-                {
-                    await _shipService.NavigateShip(shipSymbol, destinationWaypointSymbol);
-                    nav = await _shipService.GetShipNav(shipSymbol);
-                    if (nav == null)
-                    {
-                        throw new Exception("Error getting ship nav!");
-                    }
-                    _logger.LogInformation("Ship {shipSymbol} going to sell cargo at {destinationSymbol}. Eta: {shipNavRouteArrival:dd/MM/yyyy HH:mm:ss}", shipSymbol, destinationWaypointSymbol, nav.Route.Arrival);
                 }
             }
         }
-
-        return;
     }
 
-    private async Task<ShipNav> SendShipToRefuellingStation(string shipSymbol, ShipNav nav, ShipFuel fuel)
+    private async Task SendShipToRefuellingStation(string shipSymbol, ShipNav nav, ShipFuel fuel)
     {
         // Need to refuel               
         WaypointWithDistance? targetFuelStation = await _marketService.GetNearestMarketSellingGood(nav.SystemSymbol, nav.WaypointSymbol, "FUEL");
@@ -294,10 +274,6 @@ internal class IdleShipProcessingService : IIdleShipProcessingService
                 throw new Exception("Error getting ship nav!");
             }
             _logger.LogInformation("Ship {shipSymbol} going to refuel at {targetFuelStationSymbol}. Eta: {shipNavRouteArrival:dd/MM/yyyy HH:mm:ss}", shipSymbol, targetFuelStation, nav.Route.Arrival);
-
-            nav = newNav;
         }
-
-        return nav;
-    }
+    }    
 }
