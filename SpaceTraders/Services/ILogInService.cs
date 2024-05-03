@@ -1,5 +1,4 @@
-﻿
-namespace SpaceTraders.Services;
+﻿namespace SpaceTraders.Services;
 
 internal interface ILogInService
 {

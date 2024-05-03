@@ -6,6 +6,7 @@ using SpaceTraders.Repositories;
 using Microsoft.Extensions.Logging;
 
 namespace SpaceTraders.Services;
+
 internal class TransactionService : ITransactionService
 {
     private readonly IShipService _shipService;

@@ -1,11 +1,5 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿namespace SpaceTraders.Services;
 
-namespace SpaceTraders.Services;
 public class ThrottleService : IThrottleService
 {
     private readonly Queue<DateTime> _requestQueue = new Queue<DateTime>();

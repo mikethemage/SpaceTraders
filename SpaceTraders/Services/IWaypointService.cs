@@ -1,5 +1,4 @@
-﻿
-using SpaceTraders.Api.Models;
+﻿using SpaceTraders.Api.Models;
 
 namespace SpaceTraders.Services;
 

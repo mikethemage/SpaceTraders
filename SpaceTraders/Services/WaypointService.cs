@@ -4,6 +4,7 @@ using SpaceTraders.Exceptions;
 using SpaceTraders.Repositories;
 
 namespace SpaceTraders.Services;
+
 internal class WaypointService : IWaypointService
 {
     private readonly IWaypointRepository _waypointRepository;

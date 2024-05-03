@@ -8,16 +8,13 @@ namespace SpaceTraders.Services;
 
 internal class SpaceTradersApiService : ISpaceTradersApiService
 {
-    private readonly HttpClient _httpClient;    
-    private readonly ITokenRepository _tokenRepository;
+    private readonly HttpClient _httpClient;
     private readonly IErrorDecoder _errorDecoder;
     private readonly IThrottleService _throttleService;       
 
-    public SpaceTradersApiService(HttpClient httpClient, ITokenRepository tokenRepository, IErrorDecoder errorDecoder, IThrottleService throttleService)
+    public SpaceTradersApiService(HttpClient httpClient, IErrorDecoder errorDecoder, IThrottleService throttleService)
     {
-        _tokenRepository = tokenRepository;
         _httpClient = httpClient;
-
         _httpClient.BaseAddress = new Uri("https://api.spacetraders.io/v2/");
         _errorDecoder = errorDecoder;
         _throttleService = throttleService;   
