@@ -48,4 +48,20 @@ internal class WaypointService : IWaypointService
             _logger.LogError("API Call Failure: {exception}", ex.Message);
         }
     }
+
+    public double GetDistance(string systemSymbol, string sourceSymbol, string destinationSymbol)
+    {
+        
+        Waypoint? source = _waypointRepository.GetWaypoint(systemSymbol, sourceSymbol);
+        Waypoint? destination = _waypointRepository.GetWaypoint(systemSymbol, destinationSymbol);
+
+        if(source == null || destination == null)
+        {
+            throw new Exception("Unable to locate waypoints for distance comparison!");
+        }
+
+        return Math.Sqrt(
+                Math.Pow(destination.X - source.X, 2) +
+                Math.Pow(destination.Y - source.Y, 2));
+    }
 }

@@ -51,12 +51,12 @@ internal class ContractService : IContractService
         }
     }
 
-    public async Task<List<string>> GetAllContracts()
-    {
-        await EnsureAllContractsLoaded();
+    //public async Task<List<string>> GetAllContracts()
+    //{
+    //    await EnsureAllContractsLoaded();
 
-        return _contractRepository.GetAllContracts();
-    }
+    //    return _contractRepository.GetAllContracts();
+    //}
 
     public async Task<List<CargoWithDestination>> GetAllAcceptedContractCargo()
     {
@@ -64,10 +64,10 @@ internal class ContractService : IContractService
         return _contractRepository.GetAllAcceptedContractCargo();
     }
 
-    public List<ContractWithCargo> GetAcceptedCargoForWaypoint(string waypointSymbol)
-    {
-        return _contractRepository.GetAcceptedCargoForWaypoint(waypointSymbol);
-    }
+    //public List<ContractWithCargo> GetAcceptedCargoForWaypoint(string waypointSymbol)
+    //{
+    //    return _contractRepository.GetAcceptedCargoForWaypoint(waypointSymbol);
+    //}
 
     public Contract? GetFirstAcceptedContract()
     {
@@ -83,4 +83,6 @@ internal class ContractService : IContractService
     {
         return _contractRepository.GetFirstContract();
     }
+
+    
 }

@@ -54,7 +54,7 @@ internal class Program
         builder.Services.AddTransient<ILogInService, LogInService>();
         builder.Services.AddTransient<ITransactionService, TransactionService>();
         builder.Services.AddTransient<IMarketService, MarketService>();
-        builder.Services.AddTransient<IIdleShipProcessingService, IdleShipProcessingService>();
+        builder.Services.AddTransient<IOrdersService, OrdersService>();
 
         using IHost host = builder.Build();
 

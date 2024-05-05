@@ -272,4 +272,36 @@ internal class ShipService : IShipService
             _logger.LogInformation("Ship: {shipSymbol} Ship Condition Event: {shipConditionEvent}", shipSymbol, JsonSerializer.Serialize(shipConditionEvent));
         }
     }
+
+    public async Task<bool> ShouldRefuel(string shipSymbol)
+    {
+        ShipFuel? fuel = await GetShipFuel(shipSymbol);
+        if (fuel == null)
+        {
+            throw new Exception($"Cannot get fuel value for ship {shipSymbol}");
+        }
+
+        return fuel.Current * 4 < fuel.Capacity;
+
+    }
+
+    public async Task<bool> IsDocked(string shipSymbol)
+    {
+        var shipNav = await GetShipNav(shipSymbol);
+        if(shipNav?.Status==ShipNavStatus.DOCKED)
+        {
+            return true;
+        }
+        return false;
+    }
+
+    public async Task<bool> IsInOrbit(string shipSymbol)
+    {
+        var shipNav = await GetShipNav(shipSymbol);
+        if (shipNav?.Status == ShipNavStatus.IN_ORBIT)
+        {
+            return true;
+        }
+        return false;
+    }
 }

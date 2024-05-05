@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using SpaceTraders.Api.Models;
 using SpaceTraders.Api.Requests;
 using SpaceTraders.Api.Responses.ResponseData;
 using SpaceTraders.Api.Responses.ResponseData.Errors;
@@ -22,25 +23,35 @@ internal class TransactionService : ITransactionService
         _spaceTradersApiService = spaceTradersApiService;
     }
 
-    public async Task SellCargo(string shipSymbol, CargoRequest sellCargoRequest)
+
+    public async Task SellCargo(string shipSymbol, ShipCargo cargo)
     {
-        try
+        if (cargo.Inventory.Count > 0)
         {
-            BuySellCargoResponseData sellCargoResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<BuySellCargoResponseData, CargoRequest>($"my/ships/{shipSymbol}/sell", sellCargoRequest);
-            _shipService.UpdateCargo(shipSymbol, sellCargoResponseData.Cargo);
-            _agentRepository.Agent = sellCargoResponseData.Agent;
-            _logger.LogInformation("Ship {shipSymbol} has sold {sellCargoResponseDataTransactionUnits} of {sellCargoResponseDataTransactionTradeSymbol}", shipSymbol, sellCargoResponseData.Transaction.Units, sellCargoResponseData.Transaction.TradeSymbol);
-        }
-        catch (StarTradersErrorResponseException ex)
-        {
-            if (ex.ErrorResponseData is ErrorResponseData<MarketTradeNotSoldError> errorResponseData)
+            CargoRequest sellCargoRequest = new CargoRequest
             {
-                _logger.LogError("Ship {shipSymbol} has failed to sell {tradeSymbol} at {waypointSymbol}.  Error message: \"{errorMessage}\".", shipSymbol, errorResponseData.Data.TradeSymbol, errorResponseData.Data.WaypointSymbol, errorResponseData.Message);
-                await _shipService.JettisonCargo(shipSymbol, errorResponseData.Data.TradeSymbol);
+                Symbol = cargo.Inventory.First().Symbol,
+                Units = cargo.Inventory.First().Units
+            };
+            
+            try
+            {
+                BuySellCargoResponseData sellCargoResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<BuySellCargoResponseData, CargoRequest>($"my/ships/{shipSymbol}/sell", sellCargoRequest);
+                _shipService.UpdateCargo(shipSymbol, sellCargoResponseData.Cargo);
+                _agentRepository.Agent = sellCargoResponseData.Agent;
+                _logger.LogInformation("Ship {shipSymbol} has sold {sellCargoResponseDataTransactionUnits} of {sellCargoResponseDataTransactionTradeSymbol}", shipSymbol, sellCargoResponseData.Transaction.Units, sellCargoResponseData.Transaction.TradeSymbol);
             }
-            else
+            catch (StarTradersErrorResponseException ex)
             {
-                _logger.LogError("Unknown error code:{errorCode} Message: \"{errorMessage}\" Payload: {errorPayload}.", ex.ErrorResponseData.Code, ex.ErrorResponseData.Message, ex.ErrorResponseData.ErrorText);
+                if (ex.ErrorResponseData is ErrorResponseData<MarketTradeNotSoldError> errorResponseData)
+                {
+                    _logger.LogError("Ship {shipSymbol} has failed to sell {tradeSymbol} at {waypointSymbol}.  Error message: \"{errorMessage}\".", shipSymbol, errorResponseData.Data.TradeSymbol, errorResponseData.Data.WaypointSymbol, errorResponseData.Message);
+                    await _shipService.JettisonCargo(shipSymbol, errorResponseData.Data.TradeSymbol);
+                }
+                else
+                {
+                    _logger.LogError("Unknown error code:{errorCode} Message: \"{errorMessage}\" Payload: {errorPayload}.", ex.ErrorResponseData.Code, ex.ErrorResponseData.Message, ex.ErrorResponseData.ErrorText);
+                }
             }
         }
     }

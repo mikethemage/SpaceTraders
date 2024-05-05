@@ -72,4 +72,6 @@ internal class ContractRepository : IContractRepository
             })
         ).ToList();
     }
+
+
 }

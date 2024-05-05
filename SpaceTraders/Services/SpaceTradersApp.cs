@@ -10,14 +10,14 @@ internal class SpaceTradersApp : BackgroundService
     private readonly IShipService _shipService;
     private readonly ILogInService _logInService;
     private readonly IWaypointService _waypointService;
-    private readonly IIdleShipProcessingService _idleShipProcessingService;
+    private readonly IOrdersService _idleShipProcessingService;
 
     public SpaceTradersApp(
         ILogger<SpaceTradersApp> logger,
         IWaypointService waypointService,
         IShipService shipService,
         ILogInService logInService,
-        IIdleShipProcessingService idleShipProcessingService)
+        IOrdersService idleShipProcessingService)
     {
         _waypointService = waypointService;
         _logger = logger;

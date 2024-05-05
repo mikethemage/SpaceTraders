@@ -1,6 +1,6 @@
 ﻿namespace SpaceTraders.Services;
 
-internal interface IIdleShipProcessingService
+internal interface IOrdersService
 {
     Task ProcessIdleShip(string shipSymbol);
 }

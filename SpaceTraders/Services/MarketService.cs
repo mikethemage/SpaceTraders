@@ -29,6 +29,28 @@ internal class MarketService : IMarketService
         return marketData;
     }
 
+
+    public async Task<List<string>> GetAllMarketsSellingGood(string systemSymbol, string tradeGood)
+    {
+        List<string> output = new List<string>();
+        List<string> possibleMarkets = _waypointRepository.GetWaypointsWithTraits(systemSymbol, WaypointTraitSymbol.MARKETPLACE);
+        foreach (string possibleMarket in possibleMarkets)
+        {
+            Market? market = _marketRepository.GetMarket(possibleMarket);
+            if (market == null)
+            {
+                market = await RefreshMarket(systemSymbol, possibleMarket);
+            }
+            if (market != null && (market.Exports.Any(e => e.Symbol == tradeGood)
+                || market.Exchange.Any(e => e.Symbol == tradeGood)
+                ))
+            {
+                output.Add(possibleMarket);
+            }
+        }
+        return output;
+    }
+
     public async Task<WaypointWithDistance?> GetNearestMarketSellingGood(string systemSymbol, string sourceWaypointSymbol, string tradeGood)
     {
         List<WaypointWithDistance> possibleMarkets = _waypointRepository.GetWaypointsWithTraitsFromLocation(systemSymbol, sourceWaypointSymbol, WaypointTraitSymbol.MARKETPLACE);
@@ -51,24 +73,24 @@ internal class MarketService : IMarketService
         return null;
     }
 
-    public async Task<WaypointWithDistance?> GetNearestMarketBuyingGood(string systemSymbol, string sourceWaypointSymbol, string tradeGood)
-    {
-        List<WaypointWithDistance> possibleMarkets = _waypointRepository.GetWaypointsWithTraitsFromLocation(systemSymbol, sourceWaypointSymbol, WaypointTraitSymbol.MARKETPLACE);
-        foreach (WaypointWithDistance possibleMarket in possibleMarkets)
-        {
-            Market? market = _marketRepository.GetMarket(possibleMarket.WaypointSymbol);
-            if (market == null)
-            {
-                market = await RefreshMarket(systemSymbol, possibleMarket.WaypointSymbol);
-            }
+    //public async Task<WaypointWithDistance?> GetNearestMarketBuyingGood(string systemSymbol, string sourceWaypointSymbol, string tradeGood)
+    //{
+    //    List<WaypointWithDistance> possibleMarkets = _waypointRepository.GetWaypointsWithTraitsFromLocation(systemSymbol, sourceWaypointSymbol, WaypointTraitSymbol.MARKETPLACE);
+    //    foreach (WaypointWithDistance possibleMarket in possibleMarkets)
+    //    {
+    //        Market? market = _marketRepository.GetMarket(possibleMarket.WaypointSymbol);
+    //        if (market == null)
+    //        {
+    //            market = await RefreshMarket(systemSymbol, possibleMarket.WaypointSymbol);
+    //        }
 
-            if (market != null && market.Imports.Any(e => e.Symbol == tradeGood))
-            {
-                return possibleMarket;
-            }
-        }
-        return null;
-    }
+    //        if (market != null && market.Imports.Any(e => e.Symbol == tradeGood))
+    //        {
+    //            return possibleMarket;
+    //        }
+    //    }
+    //    return null;
+    //}
 
     public async Task<bool> MarketSellsGood(string systemSymbol, string waypointSymbol, string tradeGood)
     {

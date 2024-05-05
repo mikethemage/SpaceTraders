@@ -18,10 +18,13 @@ internal interface IShipService
     Task<Cooldown?> GetShipCooldown(string shipSymbol);
     Task<ShipFuel?> GetShipFuel(string shipSymbol);
     Task<ShipNav?> GetShipNav(string shipSymbol);
+    Task<bool> IsDocked(string shipSymbol);
+    Task<bool> IsInOrbit(string shipSymbol);
     Task JettisonCargo(string shipSymbol, string tradeSymbol);
     Task NavigateShip(string shipSymbol, string destinationWaypointSymbol);
     Task OrbitShip(string shipSymbol);
     void RemoveShip(string shipSymbol);
+    Task<bool> ShouldRefuel(string shipSymbol);
     void UpdateCargo(string shipSymbol, ShipCargo cargo);
     void UpdateCooldown(string shipSymbol, Cooldown cooldown);
     void UpdateFuel(string shipSymbol, ShipFuel fuel);

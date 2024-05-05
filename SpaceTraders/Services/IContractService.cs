@@ -6,9 +6,9 @@ namespace SpaceTraders.Services;
 internal interface IContractService
 {
     Task EnsureAllContractsLoaded();
-    Task<List<string>> GetAllContracts();
+    //Task<List<string>> GetAllContracts();
     Task<List<CargoWithDestination>> GetAllAcceptedContractCargo();
-    List<ContractWithCargo> GetAcceptedCargoForWaypoint(string waypointSymbol);
+    //List<ContractWithCargo> GetAcceptedCargoForWaypoint(string waypointSymbol);
     Contract? GetFirstAcceptedContract();
     void AddOrUpdateContract(Contract contract);
     Contract? GetFirstContract();

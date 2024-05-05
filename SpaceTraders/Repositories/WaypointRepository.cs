@@ -19,17 +19,17 @@ internal class WaypointRepository : IWaypointRepository
         }
     }
 
-    public List<WaypointTrait> GetWaypointTraits(string systemSymbol, string waypointSymbol)
-    {
-        if (_waypoints.ContainsKey(systemSymbol) && _waypoints[systemSymbol].ContainsKey(waypointSymbol))
-        {
-            return _waypoints[systemSymbol][waypointSymbol].Traits;
-        }
-        else
-        {
-            return new List<WaypointTrait>();
-        }
-    }
+    //public List<WaypointTrait> GetWaypointTraits(string systemSymbol, string waypointSymbol)
+    //{
+    //    if (_waypoints.ContainsKey(systemSymbol) && _waypoints[systemSymbol].ContainsKey(waypointSymbol))
+    //    {
+    //        return _waypoints[systemSymbol][waypointSymbol].Traits;
+    //    }
+    //    else
+    //    {
+    //        return new List<WaypointTrait>();
+    //    }
+    //}
 
     public void AddOrUpdateWaypoint(Waypoint waypointToAdd)
     {
@@ -80,6 +80,18 @@ internal class WaypointRepository : IWaypointRepository
             return null;
         }
     }
+
+    public List<string> GetWaypointsWithTraits(string systemSymbol, WaypointTraitSymbol requiredTrait)
+    {        
+        if (_waypoints.ContainsKey(systemSymbol))
+        {
+            return _waypoints[systemSymbol]
+            .Where(w => w.Value.Traits.Any(t => t.Symbol == requiredTrait))
+            .Select(w=>w.Value.Symbol).ToList();
+        }
+        return new List<string>();
+    }
+
 
     public List<WaypointWithDistance> GetWaypointsWithTraitsFromLocation(string systemSymbol, string sourceWaypointSymbol, WaypointTraitSymbol requiredTrait)
     {
