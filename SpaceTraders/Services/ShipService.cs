@@ -266,6 +266,7 @@ internal class ShipService : IShipService
         NavigateResponseData navigateResponse = await _spaceTradersApiService.PostToStarTradersApiWithPayload<NavigateResponseData, NavigateRequest>($"my/ships/{shipSymbol}/navigate", navigateRequest);
         UpdateFuel(shipSymbol, navigateResponse.Fuel);
         UpdateNav(shipSymbol, navigateResponse.Nav);
+        _logger.LogInformation("Ship: {shipSymbol} is navigating to: {waypointSymbol}, Eta: {arrival:dd/MM/yyyy hh:mm:ss}", shipSymbol, destinationWaypointSymbol, navigateResponse.Nav.Route.Arrival);
         foreach (ShipConditionEvent shipConditionEvent in navigateResponse.Events)
         {
             _logger.LogInformation("Ship: {shipSymbol} Ship Condition Event: {shipConditionEvent}", shipSymbol, JsonSerializer.Serialize(shipConditionEvent));

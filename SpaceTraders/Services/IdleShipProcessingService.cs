@@ -201,7 +201,7 @@ internal class IdleShipProcessingService : IIdleShipProcessingService
         }
         else
         {
-            return cargo.Units == 0 && cargo.Capacity > 0;
+            return cargo.Units != 0 && cargo.Capacity > 0;
         }
     }
 
