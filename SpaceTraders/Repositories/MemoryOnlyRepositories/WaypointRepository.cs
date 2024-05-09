@@ -1,7 +1,7 @@
 ﻿using SpaceTraders.Api.Models;
 using SpaceTraders.Models;
 
-namespace SpaceTraders.Repositories;
+namespace SpaceTraders.Repositories.MemoryOnlyRepositories;
 
 internal class WaypointRepository : IWaypointRepository
 {
@@ -82,12 +82,12 @@ internal class WaypointRepository : IWaypointRepository
     }
 
     public List<string> GetWaypointsWithTraits(string systemSymbol, WaypointTraitSymbol requiredTrait)
-    {        
+    {
         if (_waypoints.ContainsKey(systemSymbol))
         {
             return _waypoints[systemSymbol]
             .Where(w => w.Value.Traits.Any(t => t.Symbol == requiredTrait))
-            .Select(w=>w.Value.Symbol).ToList();
+            .Select(w => w.Value.Symbol).ToList();
         }
         return new List<string>();
     }

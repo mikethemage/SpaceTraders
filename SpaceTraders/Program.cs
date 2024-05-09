@@ -4,6 +4,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using SpaceTraders.Models;
 using SpaceTraders.Repositories;
+using SpaceTraders.Repositories.MemoryOnlyRepositories;
 using SpaceTraders.Services;
 
 namespace SpaceTraders;

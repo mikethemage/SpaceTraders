@@ -1,17 +1,17 @@
-﻿namespace SpaceTraders.Repositories;
+﻿namespace SpaceTraders.Repositories.MemoryOnlyRepositories;
 
 public class TokenRepository : ITokenRepository
 {
-    const string filename = "Token.txt";
+    const string _filename = "Token.txt";
     private string? _token = null;
-    private bool fileLoaded = false;
+    private bool _fileLoaded = false;
 
     public async Task<string?> GetTokenAsync()
     {
-        if (_token == null && fileLoaded == false)
+        if (_token == null && _fileLoaded == false)
         {
             await LoadTokenFromFile();
-            fileLoaded = true;
+            _fileLoaded = true;
         }
 
         return _token;
@@ -27,7 +27,7 @@ public class TokenRepository : ITokenRepository
     {
         try
         {
-            _token = await File.ReadAllTextAsync(filename);
+            _token = await File.ReadAllTextAsync(_filename);
         }
         catch
         {
@@ -39,11 +39,11 @@ public class TokenRepository : ITokenRepository
     {
         if (_token != null)
         {
-            await File.WriteAllTextAsync(filename, _token);
+            await File.WriteAllTextAsync(_filename, _token);
         }
         else
         {
-            File.Delete(filename);
+            File.Delete(_filename);
         }
     }
 }

@@ -1,6 +1,6 @@
 ﻿using SpaceTraders.Api.Models;
 
-namespace SpaceTraders.Repositories;
+namespace SpaceTraders.Repositories.MemoryOnlyRepositories;
 internal class MarketRepository : IMarketRepository
 {
     private readonly Dictionary<string, Market> _markets = new Dictionary<string, Market>();

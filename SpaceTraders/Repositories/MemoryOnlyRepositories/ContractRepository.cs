@@ -1,7 +1,7 @@
 ﻿using SpaceTraders.Api.Models;
 using SpaceTraders.Models;
 
-namespace SpaceTraders.Repositories;
+namespace SpaceTraders.Repositories.MemoryOnlyRepositories;
 internal class ContractRepository : IContractRepository
 {
     private readonly Dictionary<string, Contract> _contracts = new Dictionary<string, Contract>();

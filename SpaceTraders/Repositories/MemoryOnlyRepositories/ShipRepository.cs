@@ -1,6 +1,6 @@
 ﻿using SpaceTraders.Api.Models;
 
-namespace SpaceTraders.Repositories;
+namespace SpaceTraders.Repositories.MemoryOnlyRepositories;
 internal class ShipRepository : IShipRepository
 {
     private readonly Dictionary<string, Ship> _ships = new Dictionary<string, Ship>();

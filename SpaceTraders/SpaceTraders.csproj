@@ -22,4 +22,8 @@
     </None>
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Repositories\DatabaseRepositories\" />
+  </ItemGroup>
+
 </Project>
