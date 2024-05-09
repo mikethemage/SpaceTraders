@@ -1,9 +1,12 @@
-﻿using Microsoft.Extensions.Configuration;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using SpaceTraders.Models;
 using SpaceTraders.Repositories;
+using SpaceTraders.Repositories.DatabaseRepositories;
+using SpaceTraders.Repositories.DatabaseRepositories.DbContexts;
 using SpaceTraders.Repositories.MemoryOnlyRepositories;
 using SpaceTraders.Services;
 
@@ -33,7 +36,11 @@ internal class Program
         builder.Services.AddSingleton<IContractRepository, ContractRepository>();
         builder.Services.AddSingleton<IWaypointRepository, WaypointRepository>();
         builder.Services.AddSingleton<IFactionRepository, FactionRepository>();
-        builder.Services.AddSingleton<ITokenRepository, TokenRepository>();
+
+        
+        builder.Services.AddSingleton<ITokenRepository, TokenDatabaseRepository>();
+
+
         builder.Services.AddSingleton<IMarketRepository, MarketRepository>();
         builder.Services.AddSingleton<IShipInfoRepository, ShipInfoRepository>();
 
@@ -56,6 +63,10 @@ internal class Program
         builder.Services.AddTransient<ITransactionService, TransactionService>();
         builder.Services.AddTransient<IMarketService, MarketService>();
         builder.Services.AddTransient<IOrdersService, OrdersService>();
+
+        builder.Services.AddDbContext<RepositoryDbContext>( options =>
+            options.UseSqlite("Data Source=SpaceTraders.db;")
+            );
 
         using IHost host = builder.Build();
 
