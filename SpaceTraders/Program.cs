@@ -41,7 +41,8 @@ internal class Program
         builder.Services.AddSingleton<IWaypointRepository, WaypointRepository>();
         builder.Services.AddSingleton<IFactionRepository, FactionRepository>();
 
-        builder.Services.AddSingleton<ITokenRepository, TokenDatabaseRepository>();
+        builder.Services.AddSingleton<ITokenMemoryOnlyRepository, TokenMemoryOnlyRepository>();
+        builder.Services.AddTransient<ITokenRepository, TokenDatabaseRepository>();
 
         builder.Services.AddSingleton<IMarketRepository, MarketRepository>();
         builder.Services.AddSingleton<IShipInfoRepository, ShipInfoRepository>();

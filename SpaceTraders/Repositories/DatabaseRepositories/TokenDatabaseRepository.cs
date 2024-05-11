@@ -2,57 +2,52 @@
 using Microsoft.Extensions.DependencyInjection;
 using SpaceTraders.Repositories.DatabaseRepositories.DbContexts;
 using SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+using SpaceTraders.Repositories.MemoryOnlyRepositories;
 
 namespace SpaceTraders.Repositories.DatabaseRepositories;
 
 public class TokenDatabaseRepository : ITokenRepository
 {
-    private readonly IServiceScopeFactory _serviceScopeFactory;
- 
-    private string? _token;
-    private bool _isLoaded = false;
     
+    private readonly ITokenMemoryOnlyRepository _tokenMemoryOnlyRepository;
+    private readonly RepositoryDbContext _repositoryDbContext;        
+    private bool _isLoaded = false;
 
-    public TokenDatabaseRepository(IServiceScopeFactory serviceScopeFactory)
+    public TokenDatabaseRepository(IServiceScopeFactory serviceScopeFactory, ITokenMemoryOnlyRepository tokenMemoryOnlyRepository, RepositoryDbContext repositoryDbContext)
     {        
-        _serviceScopeFactory = serviceScopeFactory;
+        _tokenMemoryOnlyRepository = tokenMemoryOnlyRepository;
+        _repositoryDbContext = repositoryDbContext;
     }
 
     public async Task<string?> GetTokenAsync()
     {
-        using var scope = _serviceScopeFactory.CreateAsyncScope();
-        RepositoryDbContext dbContext = scope.ServiceProvider.GetRequiredService<RepositoryDbContext>();
-
         if (!_isLoaded)        
         {
-            Token? token = (await dbContext.Tokens.ToListAsync()).FirstOrDefault();
-            _token = token?.TokenValue;
+            Token? token = (await _repositoryDbContext.Tokens.ToListAsync()).FirstOrDefault();
+            _tokenMemoryOnlyRepository.UpdateToken(token?.TokenValue);
 
             _isLoaded = true;            
         }
-        return _token;               
+        return _tokenMemoryOnlyRepository.GetToken();
     }
 
     public async Task UpdateTokenAsync(string? token)
     {
-        using var scope = _serviceScopeFactory.CreateAsyncScope();
-        RepositoryDbContext dbContext = scope.ServiceProvider.GetRequiredService<RepositoryDbContext>();
-
-        _token = token;
-        if(_token == null)
+        _tokenMemoryOnlyRepository.UpdateToken(token);
+        if(token == null)
         {
-            dbContext.RemoveRange(dbContext.Tokens);            
+            _repositoryDbContext.RemoveRange(_repositoryDbContext.Tokens);            
         }
         else 
         {
-            Token? existingToken = dbContext.Tokens.FirstOrDefault();
+            Token? existingToken = _repositoryDbContext.Tokens.FirstOrDefault();
             if (existingToken == null)
             {
                 existingToken = new Token();
-                dbContext.Add(existingToken);
+                _repositoryDbContext.Add(existingToken);
             }
-            existingToken.TokenValue = _token;            
+            existingToken.TokenValue = token;            
         }
-        await dbContext.SaveChangesAsync();
+        await _repositoryDbContext.SaveChangesAsync();
     }
 }
