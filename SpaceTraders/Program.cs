@@ -3,6 +3,8 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Quartz;
+using SpaceTraders.Jobs;
 using SpaceTraders.Models;
 using SpaceTraders.Repositories;
 using SpaceTraders.Repositories.DatabaseRepositories;
@@ -30,6 +32,8 @@ internal class Program
             })
             .AddHttpMessageHandler<AuthenticationHandler>();
 
+        builder.Services.AddQuartzHostedService();
+
         // Add repositories as singletons
         builder.Services.AddSingleton<IAgentRepository, AgentRepository>();
         builder.Services.AddSingleton<IShipRepository, ShipRepository>();
@@ -37,9 +41,7 @@ internal class Program
         builder.Services.AddSingleton<IWaypointRepository, WaypointRepository>();
         builder.Services.AddSingleton<IFactionRepository, FactionRepository>();
 
-        
         builder.Services.AddSingleton<ITokenRepository, TokenDatabaseRepository>();
-
 
         builder.Services.AddSingleton<IMarketRepository, MarketRepository>();
         builder.Services.AddSingleton<IShipInfoRepository, ShipInfoRepository>();
@@ -52,8 +54,21 @@ internal class Program
 
         builder.Services.AddTransient<IErrorDecoder, ErrorDecoder>();
 
-        // Add the SpaceTradersApp class itself
-        builder.Services.AddHostedService<SpaceTradersApp>();
+        builder.Services.AddQuartz(q =>
+        {
+            q.ScheduleJob<SpaceTradersInitializationJob>(j =>
+            {
+                j.StartNow();
+                j.WithDescription("Initialization");
+            });
+
+            q.AddJob<ProcessIdleShipJob>(j =>
+            {
+                j.WithIdentity("ProcessIdleShipJob");
+                j.WithDescription("ProcessIdleShip");
+                j.StoreDurably();
+            });
+        });
 
         //Add services:
         builder.Services.AddTransient<IShipService, ShipService>();
@@ -64,7 +79,7 @@ internal class Program
         builder.Services.AddTransient<IMarketService, MarketService>();
         builder.Services.AddTransient<IOrdersService, OrdersService>();
 
-        builder.Services.AddDbContext<RepositoryDbContext>( options =>
+        builder.Services.AddDbContext<RepositoryDbContext>(options =>
             options.UseSqlite("Data Source=SpaceTraders.db;")
             );
 
