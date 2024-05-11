@@ -1,5 +1,4 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
 using SpaceTraders.Repositories.DatabaseRepositories.DbContexts;
 using SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 using SpaceTraders.Repositories.MemoryOnlyRepositories;
@@ -13,7 +12,7 @@ public class TokenDatabaseRepository : ITokenRepository
     private readonly RepositoryDbContext _repositoryDbContext;        
     private bool _isLoaded = false;
 
-    public TokenDatabaseRepository(IServiceScopeFactory serviceScopeFactory, ITokenMemoryOnlyRepository tokenMemoryOnlyRepository, RepositoryDbContext repositoryDbContext)
+    public TokenDatabaseRepository(ITokenMemoryOnlyRepository tokenMemoryOnlyRepository, RepositoryDbContext repositoryDbContext)
     {        
         _tokenMemoryOnlyRepository = tokenMemoryOnlyRepository;
         _repositoryDbContext = repositoryDbContext;
