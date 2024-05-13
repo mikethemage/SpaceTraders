@@ -32,4 +32,9 @@ internal class MarketRepository : IMarketRepository
     {
         _markets.Remove(symbol);
     }
+
+    public void Clear()
+    {
+        _markets.Clear(); ;
+    }
 }

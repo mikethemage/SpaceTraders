@@ -1,28 +1,45 @@
 ﻿using Microsoft.Extensions.Logging;
-using SpaceTraders.Api.Models;
+using Microsoft.Extensions.Options;
 using SpaceTraders.Api.Requests;
 using SpaceTraders.Api.Responses.ResponseData;
 using SpaceTraders.Exceptions;
+using SpaceTraders.Models;
 using SpaceTraders.Repositories;
 
 namespace SpaceTraders.Services;
+
 internal class LogInService : ILogInService
 {
     private readonly ILogger<LogInService> _logger;
-    private readonly ITokenRepository _tokenRepository;
+    private readonly ClientConfig _clientConfig;
+    private readonly IAgentService _agentService;
     private readonly IContractService _contractService;
-    private readonly IFactionRepository _factionRepository;
+    private readonly IFactionService _factionService;
+    private readonly IShipService _shipService;
     private readonly ISpaceTradersApiService _spaceTradersApiService;
-    private readonly IAgentRepository _agentRepository;
+    private readonly ITokenRepository _tokenRepository;
+    private readonly IWaypointService _waypointService;
 
-    public LogInService(ILogger<LogInService> logger, ITokenRepository tokenRepository, IContractService contractService, IFactionRepository factionRepository, ISpaceTradersApiService spaceTradersApiService, IAgentRepository agentRepository)
+    public LogInService(
+        ILogger<LogInService> logger,
+        ITokenRepository tokenRepository,
+        IContractService contractService,
+        ISpaceTradersApiService spaceTradersApiService,
+        IAgentService agentService,
+        IFactionService factionService,
+        IShipService shipService,
+        IWaypointService waypointService,
+        IOptions<ClientConfig> options)
     {
         _logger = logger;
         _tokenRepository = tokenRepository;
+        _agentService = agentService;
         _contractService = contractService;
-        _factionRepository = factionRepository;
+        _shipService = shipService;
         _spaceTradersApiService = spaceTradersApiService;
-        _agentRepository = agentRepository;
+        _factionService = factionService;
+        _waypointService = waypointService;
+        _clientConfig = options.Value;
     }
 
     public async Task LogIn()
@@ -33,16 +50,20 @@ internal class LogInService : ILogInService
             _logger.LogInformation("Logging In");
 
             try
-            {
-                await GetAgent();
+            {                
                 await _contractService.EnsureAllContractsLoaded();
             }
             catch (StarTradersErrorResponseException ex)
             {
                 if (ex.ErrorResponseData.Code == 401)
                 {
-                    //Unauthorised so try clearing token:
+                    //Unauthorised so clear token and data so we can start fresh:
                     await _tokenRepository.UpdateTokenAsync(null);
+                    await _agentService.UpdateAgent(null); 
+                    _contractService.Clear();
+                    _factionService.Clear();                    
+                    _shipService.Clear();
+                    _waypointService.Clear();
                 }
                 else
                 {
@@ -58,37 +79,23 @@ internal class LogInService : ILogInService
             await Register();
             _logger.LogInformation("Agent registered");
         }
-    }
-
-    private async Task GetAgent()
-    {
-        try
-        {
-            Agent agent = await _spaceTradersApiService.GetFromStarTradersApi<Agent>("my/agent");
-            _agentRepository.Agent = agent;
-            _logger.LogInformation("Loaded Agent Details");
-        }
-        catch (StarTradersResponseJsonException ex)
-        {
-            _logger.LogError("JSON Parse Failure: {exception}", ex.Message);
-        }
-        catch (StarTradersApiFailException ex)
-        {
-            _logger.LogError("API Call Failure: {exception}", ex.Message);
-        }
-    }
+    }    
 
     private async Task Register()
     {
-        RegisterRequest request = new RegisterRequest { Symbol = "MiketheMage", Faction = "COSMIC" };
+        if(_clientConfig.AgentSymbol is null || _clientConfig.FactionSymbol is null)
+        {
+            throw new Exception("Missing agent/faction details in config!");
+        }
+
+        RegisterRequest request = new RegisterRequest { Symbol = _clientConfig.AgentSymbol, Faction = _clientConfig.FactionSymbol };
 
         try
         {
             RegisterResponseData registerResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<RegisterResponseData, RegisterRequest>("register", request);
-            _agentRepository.Agent = registerResponseData.Agent;
-            await _tokenRepository.UpdateTokenAsync(registerResponseData.Token);
-            _factionRepository.Factions.Remove(registerResponseData.Faction.Symbol);
-            _factionRepository.Factions.Add(registerResponseData.Faction.Symbol, registerResponseData.Faction);
+            await _tokenRepository.UpdateTokenAsync(registerResponseData.Token); 
+            await _agentService.UpdateAgent(registerResponseData.Agent);            
+            _factionService.AddOrUpdateFaction(registerResponseData.Faction);            
             _contractService.AddOrUpdateContract(registerResponseData.Contract);
         }
         catch (StarTradersResponseJsonException ex)

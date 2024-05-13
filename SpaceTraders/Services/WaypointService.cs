@@ -7,15 +7,17 @@ namespace SpaceTraders.Services;
 
 internal class WaypointService : IWaypointService
 {
+    private readonly IMarketRepository _marketRepository;
     private readonly IWaypointRepository _waypointRepository;
     private readonly ISpaceTradersApiService _spaceTradersApiService;
     private readonly ILogger<WaypointService> _logger;
 
-    public WaypointService(IWaypointRepository waypointRepository, ISpaceTradersApiService spaceTradersApiService, ILogger<WaypointService> logger)
+    public WaypointService(IWaypointRepository waypointRepository, ISpaceTradersApiService spaceTradersApiService, ILogger<WaypointService> logger, IMarketRepository marketRepository)
     {
         _waypointRepository = waypointRepository;
         _spaceTradersApiService = spaceTradersApiService;
         _logger = logger;
+        _marketRepository = marketRepository;
     }
 
     public WaypointType? GetWaypointType(string systemSymbol, string waypointSymbol)
@@ -63,5 +65,11 @@ internal class WaypointService : IWaypointService
         return Math.Sqrt(
                 Math.Pow(destination.X - source.X, 2) +
                 Math.Pow(destination.Y - source.Y, 2));
+    }
+
+    public void Clear()
+    {
+        _marketRepository.Clear();
+        _waypointRepository.Clear();
     }
 }

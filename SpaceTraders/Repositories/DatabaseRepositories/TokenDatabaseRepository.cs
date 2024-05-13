@@ -31,6 +31,7 @@ public class TokenDatabaseRepository : ITokenRepository
     public async Task UpdateTokenAsync(string? token)
     {
         _tokenMemoryOnlyRepository.UpdateToken(token);
+
         if (token == null)
         {
             _repositoryDbContext.RemoveRange(_repositoryDbContext.Tokens);

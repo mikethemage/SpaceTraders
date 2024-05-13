@@ -4,23 +4,22 @@ using SpaceTraders.Api.Requests;
 using SpaceTraders.Api.Responses.ResponseData;
 using SpaceTraders.Api.Responses.ResponseData.Errors;
 using SpaceTraders.Exceptions;
-using SpaceTraders.Repositories;
 
 namespace SpaceTraders.Services;
 
 internal class TransactionService : ITransactionService
 {
     private readonly IShipService _shipService;
-    private readonly IAgentRepository _agentRepository;
+    private readonly IAgentService _agentService;    
     private readonly ILogger<TransactionService> _logger;
     private readonly ISpaceTradersApiService _spaceTradersApiService;
 
-    public TransactionService(IShipService shipService, IAgentRepository agentRepository, ILogger<TransactionService> logger, ISpaceTradersApiService spaceTradersApiService)
+    public TransactionService(IShipService shipService, ILogger<TransactionService> logger, ISpaceTradersApiService spaceTradersApiService, IAgentService agentService)
     {
         _shipService = shipService;
-        _agentRepository = agentRepository;
         _logger = logger;
         _spaceTradersApiService = spaceTradersApiService;
+        _agentService = agentService;
     }
 
 
@@ -38,7 +37,7 @@ internal class TransactionService : ITransactionService
             {
                 BuySellCargoResponseData sellCargoResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<BuySellCargoResponseData, CargoRequest>($"my/ships/{shipSymbol}/sell", sellCargoRequest);
                 _shipService.UpdateCargo(shipSymbol, sellCargoResponseData.Cargo);
-                _agentRepository.Agent = sellCargoResponseData.Agent;
+                _agentService.UpdateAgent(sellCargoResponseData.Agent);
                 _logger.LogInformation("Ship {shipSymbol} has sold {sellCargoResponseDataTransactionUnits} of {sellCargoResponseDataTransactionTradeSymbol}", shipSymbol, sellCargoResponseData.Transaction.Units, sellCargoResponseData.Transaction.TradeSymbol);
             }
             catch (StarTradersErrorResponseException ex)
@@ -60,6 +59,6 @@ internal class TransactionService : ITransactionService
     {
         RefuelResponseData refuelResponse = await _spaceTradersApiService.PostToStarTradersApi<RefuelResponseData>($"my/ships/{shipSymbol}/refuel");
         _shipService.UpdateFuel(shipSymbol, refuelResponse.Fuel);
-        _agentRepository.Agent = refuelResponse.Agent;
+        _agentService.UpdateAgent(refuelResponse.Agent);
     }
 }

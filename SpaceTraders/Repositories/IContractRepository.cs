@@ -6,7 +6,7 @@ internal interface IContractRepository
 {
     void AddOrUpdateContract(Contract contract);
     void AddOrUpdateContracts(List<Contract> contracts);
-
+    void Clear();
     List<ContractWithCargo> GetAcceptedCargoForWaypoint(string waypointSymbol);
     List<CargoWithDestination> GetAllAcceptedContractCargo();
     List<string> GetAllContracts();

@@ -3,5 +3,7 @@
 namespace SpaceTraders.Repositories;
 internal interface IFactionRepository
 {
-    Dictionary<string, Faction> Factions { get; set; }
+    void AddOrUpdateFaction(Faction faction);
+    void Clear();
+    Faction? GetFaction(string symbol);
 }

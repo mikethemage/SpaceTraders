@@ -2,6 +2,7 @@
 
 namespace SpaceTraders.Repositories;
 internal interface IAgentRepository
-{
-    Agent? Agent { get; set; }
+{   
+    Task<Agent?> GetAgentAsync();
+    Task UpdateAgentAsync(Agent? agent);
 }

@@ -13,4 +13,5 @@ internal interface IContractService
     void AddOrUpdateContract(Contract contract);
     Contract? GetFirstContract();
     Task<Contract> GetCurrentContract();
+    void Clear();
 }

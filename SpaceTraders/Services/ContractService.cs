@@ -11,14 +11,14 @@ internal class ContractService : IContractService
     private readonly ILogger<ContractService> _logger;
     private readonly IContractRepository _contractRepository;
     private readonly ISpaceTradersApiService _spaceTradersApiService;
-    private readonly IAgentRepository _agentRepository;
+    private readonly IAgentService _agentService;
 
-    public ContractService(IContractRepository contractRepository, ISpaceTradersApiService spaceTradersApiService, ILogger<ContractService> logger, IAgentRepository agentRepository)
+    public ContractService(IContractRepository contractRepository, ISpaceTradersApiService spaceTradersApiService, ILogger<ContractService> logger, IAgentService agentService)
     {
         _contractRepository = contractRepository;
         _spaceTradersApiService = spaceTradersApiService;
         _logger = logger;
-        _agentRepository = agentRepository;
+        _agentService = agentService;
     }
 
     public async Task<Contract> GetCurrentContract()
@@ -33,7 +33,7 @@ internal class ContractService : IContractService
                 throw new Exception("We have no contracts!!!");
             }
             AcceptContractResponseData acceptContractResponseData = await _spaceTradersApiService.PostToStarTradersApi<AcceptContractResponseData>($"my/contracts/{nextContract.Id}/accept");
-            _agentRepository.Agent = acceptContractResponseData.Agent;
+            _agentService.UpdateAgent(acceptContractResponseData.Agent);
             currentContract = acceptContractResponseData.Contract;
             AddOrUpdateContract(currentContract);
             _logger.LogInformation("Accepted new contract");
@@ -84,5 +84,9 @@ internal class ContractService : IContractService
         return _contractRepository.GetFirstContract();
     }
 
+    public void Clear()
+    {
+        _contractRepository.Clear();
+    }
     
 }

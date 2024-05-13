@@ -73,5 +73,8 @@ internal class ContractRepository : IContractRepository
         ).ToList();
     }
 
-
+    public void Clear()
+    {
+        _contracts.Clear();
+    }
 }

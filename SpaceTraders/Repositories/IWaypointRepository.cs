@@ -5,6 +5,7 @@ namespace SpaceTraders.Repositories;
 internal interface IWaypointRepository
 {
     void AddOrUpdateWaypoint(Waypoint waypoint);
+    void Clear();
     string? GetNearestWaypointOfType(string systemSymbol, string sourceWaypointSymbol, WaypointType waypointType);
     Waypoint? GetWaypoint(string systemSymbol, string waypointSymbol);
     List<string> GetWaypointsWithTraits(string systemSymbol, WaypointTraitSymbol requiredTrait);

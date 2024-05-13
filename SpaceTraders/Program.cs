@@ -35,15 +35,14 @@ internal class Program
         builder.Services.AddQuartzHostedService();
 
         // Add repositories as singletons
-        builder.Services.AddSingleton<IAgentRepository, AgentRepository>();
+        builder.Services.AddSingleton<IAgentMemoryOnlyRepository, AgentMemoryOnlyRepository>();
+        builder.Services.AddTransient<IAgentRepository, AgentDatabaseRepository>();
         builder.Services.AddSingleton<IShipRepository, ShipRepository>();
         builder.Services.AddSingleton<IContractRepository, ContractRepository>();
         builder.Services.AddSingleton<IWaypointRepository, WaypointRepository>();
         builder.Services.AddSingleton<IFactionRepository, FactionRepository>();
-
         builder.Services.AddSingleton<ITokenMemoryOnlyRepository, TokenMemoryOnlyRepository>();
         builder.Services.AddTransient<ITokenRepository, TokenDatabaseRepository>();
-
         builder.Services.AddSingleton<IMarketRepository, MarketRepository>();
         builder.Services.AddSingleton<IShipInfoRepository, ShipInfoRepository>();
 
@@ -79,6 +78,8 @@ internal class Program
         builder.Services.AddTransient<ITransactionService, TransactionService>();
         builder.Services.AddTransient<IMarketService, MarketService>();
         builder.Services.AddTransient<IOrdersService, OrdersService>();
+        builder.Services.AddTransient<IAgentService, AgentService>();
+        builder.Services.AddTransient<IFactionService, FactionService>();
 
         builder.Services.AddDbContext<RepositoryDbContext>(options =>
             options.UseSqlite("Data Source=SpaceTraders.db;")

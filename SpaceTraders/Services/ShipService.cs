@@ -12,14 +12,16 @@ internal class ShipService : IShipService
     private readonly ISpaceTradersApiService _spaceTradersApiService;
     private readonly IShipInfoRepository _shipInfoRepository;
     private readonly IShipRepository _shipRepository;
+    private readonly IAgentService _agentService;
     private readonly ILogger<ShipService> _logger;
 
-    public ShipService(ISpaceTradersApiService spaceTradersApiService, IShipInfoRepository shipInfoRepository, IShipRepository shipRepository, ILogger<ShipService> logger)
+    public ShipService(ISpaceTradersApiService spaceTradersApiService, IShipInfoRepository shipInfoRepository, IShipRepository shipRepository, ILogger<ShipService> logger, IAgentService agentService)
     {
         _spaceTradersApiService = spaceTradersApiService;
         _shipInfoRepository = shipInfoRepository;
         _shipRepository = shipRepository;
         _logger = logger;
+        _agentService = agentService;
     }
 
     public void AddOrUpdateShip(Ship ship)
@@ -81,7 +83,8 @@ internal class ShipService : IShipService
 
     private async Task EnsureAllShipsLoaded()
     {
-        if (_shipRepository.GetShipCount() == 0)
+        int expectedShipCount = await _agentService.GetShipCount();
+        if (_shipRepository.GetShipCount() != expectedShipCount)
         {
             List<Ship> ships = await _spaceTradersApiService.GetAllFromStarTradersApi<Ship>("my/ships");
             AddOrUpdateShips(ships);

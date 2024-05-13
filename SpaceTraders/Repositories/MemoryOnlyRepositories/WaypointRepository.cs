@@ -116,4 +116,9 @@ internal class WaypointRepository : IWaypointRepository
         }
 
     }
+
+    public void Clear()
+    {
+        _waypoints.Clear();
+    }
 }
