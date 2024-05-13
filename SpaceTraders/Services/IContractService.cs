@@ -9,9 +9,9 @@ internal interface IContractService
     //Task<List<string>> GetAllContracts();
     Task<List<CargoWithDestination>> GetAllAcceptedContractCargo();
     //List<ContractWithCargo> GetAcceptedCargoForWaypoint(string waypointSymbol);
-    Contract? GetFirstAcceptedContract();
-    void AddOrUpdateContract(Contract contract);
-    Contract? GetFirstContract();
+    Task<Contract?> GetFirstAcceptedContract();
+    Task AddOrUpdateContract(Contract contract);
+    Task<Contract?> GetFirstContract();
     Task<Contract> GetCurrentContract();
-    void Clear();
+    Task Clear();
 }

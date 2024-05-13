@@ -8,7 +8,9 @@ public class Contract
     public ContractTerms Terms { get; set; } = null!;
     public bool Accepted { get; set; }
     public bool Fulfilled { get; set; }
+
     [Obsolete("Expiration is deprecated, please use DeadlineToAccept instead.")]
-    public DateTime Expiration { get; set; }
-    public DateTime DeadlineToAccept { get; set; }
+    public DateTime? Expiration { get; set; }
+
+    public DateTime? DeadlineToAccept { get; set; }
 }

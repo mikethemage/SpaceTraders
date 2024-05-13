@@ -23,19 +23,19 @@ internal class ContractService : IContractService
 
     public async Task<Contract> GetCurrentContract()
     {
-        Contract? currentContract = GetFirstAcceptedContract();
+        Contract? currentContract = await GetFirstAcceptedContract();
         if (currentContract == null)
         {
-            Contract? nextContract = GetFirstContract();
+            Contract? nextContract = await GetFirstContract();
             if (nextContract == null)
             {
                 //We have no contracts!!
                 throw new Exception("We have no contracts!!!");
             }
             AcceptContractResponseData acceptContractResponseData = await _spaceTradersApiService.PostToStarTradersApi<AcceptContractResponseData>($"my/contracts/{nextContract.Id}/accept");
-            _agentService.UpdateAgent(acceptContractResponseData.Agent);
+            await _agentService.UpdateAgent(acceptContractResponseData.Agent);
             currentContract = acceptContractResponseData.Contract;
-            AddOrUpdateContract(currentContract);
+            await AddOrUpdateContract(currentContract);
             _logger.LogInformation("Accepted new contract");
         }
 
@@ -44,10 +44,10 @@ internal class ContractService : IContractService
 
     public async Task EnsureAllContractsLoaded()
     {
-        if (_contractRepository.GetContractsCount() == 0)
+        if (await _contractRepository.GetContractsCount() == 0)
         {
             List<Contract> contracts = await _spaceTradersApiService.GetAllFromStarTradersApi<Contract>("my/contracts");
-            _contractRepository.AddOrUpdateContracts(contracts);
+            await _contractRepository.AddOrUpdateContracts(contracts);
         }
     }
 
@@ -61,7 +61,7 @@ internal class ContractService : IContractService
     public async Task<List<CargoWithDestination>> GetAllAcceptedContractCargo()
     {
         await EnsureAllContractsLoaded();
-        return _contractRepository.GetAllAcceptedContractCargo();
+        return await _contractRepository.GetAllAcceptedContractCargo();
     }
 
     //public List<ContractWithCargo> GetAcceptedCargoForWaypoint(string waypointSymbol)
@@ -69,24 +69,24 @@ internal class ContractService : IContractService
     //    return _contractRepository.GetAcceptedCargoForWaypoint(waypointSymbol);
     //}
 
-    public Contract? GetFirstAcceptedContract()
+    public async Task<Contract?> GetFirstAcceptedContract()
     {
-        return _contractRepository.GetFirstAcceptedContract();
+        return await _contractRepository.GetFirstAcceptedContract();
     }
 
-    public void AddOrUpdateContract(Contract contract)
+    public async Task AddOrUpdateContract(Contract contract)
     {
-        _contractRepository.AddOrUpdateContract(contract);
+        await _contractRepository.AddOrUpdateContract(contract);
     }
 
-    public Contract? GetFirstContract()
+    public async Task<Contract?> GetFirstContract()
     {
-        return _contractRepository.GetFirstContract();
+        return await _contractRepository.GetFirstContract();
     }
 
-    public void Clear()
+    public async Task Clear()
     {
-        _contractRepository.Clear();
+        await _contractRepository.Clear();
     }
     
 }

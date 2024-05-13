@@ -4,13 +4,14 @@ using SpaceTraders.Models;
 namespace SpaceTraders.Repositories;
 internal interface IContractRepository
 {
-    void AddOrUpdateContract(Contract contract);
-    void AddOrUpdateContracts(List<Contract> contracts);
-    void Clear();
-    List<ContractWithCargo> GetAcceptedCargoForWaypoint(string waypointSymbol);
-    List<CargoWithDestination> GetAllAcceptedContractCargo();
-    List<string> GetAllContracts();
-    int GetContractsCount();
-    Contract? GetFirstAcceptedContract();
-    Contract? GetFirstContract();
+    Task AddOrUpdateContract(Contract contract);
+    Task AddOrUpdateContracts(List<Contract> contracts);
+    Task Clear();
+    Task<List<ContractWithCargo>> GetAcceptedCargoForWaypoint(string waypointSymbol);
+    Task<List<CargoWithDestination>> GetAllAcceptedContractCargo();
+    Task<List<string>> GetAllContracts();
+    Task<Contract> GetContract(string contractId);
+    Task<int> GetContractsCount();
+    Task<Contract?> GetFirstAcceptedContract();
+    Task<Contract?> GetFirstContract();
 }

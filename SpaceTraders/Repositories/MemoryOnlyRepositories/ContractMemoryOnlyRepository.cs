@@ -2,14 +2,11 @@
 using SpaceTraders.Models;
 
 namespace SpaceTraders.Repositories.MemoryOnlyRepositories;
-internal class ContractRepository : IContractRepository
+internal class ContractMemoryOnlyRepository : IContractMemoryOnlyRepository
 {
     private readonly Dictionary<string, Contract> _contracts = new Dictionary<string, Contract>();
 
-    public ContractRepository()
-    {
-
-    }
+    public bool IsLoaded { get; set; } = false;    
 
     public void AddOrUpdateContract(Contract contract)
     {

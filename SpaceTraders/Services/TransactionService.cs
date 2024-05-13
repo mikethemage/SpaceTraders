@@ -37,7 +37,7 @@ internal class TransactionService : ITransactionService
             {
                 BuySellCargoResponseData sellCargoResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<BuySellCargoResponseData, CargoRequest>($"my/ships/{shipSymbol}/sell", sellCargoRequest);
                 _shipService.UpdateCargo(shipSymbol, sellCargoResponseData.Cargo);
-                _agentService.UpdateAgent(sellCargoResponseData.Agent);
+                await _agentService.UpdateAgent(sellCargoResponseData.Agent);
                 _logger.LogInformation("Ship {shipSymbol} has sold {sellCargoResponseDataTransactionUnits} of {sellCargoResponseDataTransactionTradeSymbol}", shipSymbol, sellCargoResponseData.Transaction.Units, sellCargoResponseData.Transaction.TradeSymbol);
             }
             catch (StarTradersErrorResponseException ex)
@@ -59,6 +59,6 @@ internal class TransactionService : ITransactionService
     {
         RefuelResponseData refuelResponse = await _spaceTradersApiService.PostToStarTradersApi<RefuelResponseData>($"my/ships/{shipSymbol}/refuel");
         _shipService.UpdateFuel(shipSymbol, refuelResponse.Fuel);
-        _agentService.UpdateAgent(refuelResponse.Agent);
+        await _agentService.UpdateAgent(refuelResponse.Agent);
     }
 }
