@@ -14,25 +14,25 @@ internal class FactionService : IFactionService
         _spaceTradersApiService = spaceTradersApiService;
     }
 
-    public void AddOrUpdateFaction(Faction faction)
+    public async Task AddOrUpdateFaction(Faction faction)
     {
-        _factionRepository.AddOrUpdateFaction(faction);
+        await _factionRepository.AddOrUpdateFaction(faction);
     }
 
-    public void Clear()
+    public async Task Clear()
     {
-        _factionRepository.Clear();
+        await _factionRepository.Clear();
     }
 
     public async Task<Faction?> GetFaction(string symbol)
     {
-        Faction? faction = _factionRepository.GetFaction(symbol);
+        Faction? faction = await _factionRepository.GetFaction(symbol);
         if (faction == null)
         {
             faction = await _spaceTradersApiService.GetFromStarTradersApi<Faction>($"factions/{symbol}");
             if (faction != null)
             {
-                _factionRepository.AddOrUpdateFaction(faction);
+                await _factionRepository.AddOrUpdateFaction(faction);
             }
         }
         return faction;

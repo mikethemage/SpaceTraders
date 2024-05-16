@@ -2,9 +2,11 @@
 
 namespace SpaceTraders.Repositories.MemoryOnlyRepositories;
 
-internal class FactionRepository : IFactionRepository
+internal class FactionMemoryOnlyRepository : IFactionMemoryOnlyRepository
 {
     private Dictionary<string, Faction> _factions = new Dictionary<string, Faction>();
+
+    public bool IsLoaded { get; set; }
 
     public void AddOrUpdateFaction(Faction faction)
     {

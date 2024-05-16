@@ -16,4 +16,5 @@ public class RepositoryDbContext : DbContext
     public DbSet<Token> Tokens { get; set; }
     public DbSet<Agent> Agents { get; set; }
     public DbSet<Contract> Contracts { get; set; }
+    public DbSet<Faction> Factions { get; set; }
 }

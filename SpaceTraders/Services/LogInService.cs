@@ -60,8 +60,8 @@ internal class LogInService : ILogInService
                     //Unauthorised so clear token and data so we can start fresh:
                     await _tokenRepository.UpdateTokenAsync(null);
                     await _agentService.UpdateAgent(null); 
-                    _contractService.Clear();
-                    _factionService.Clear();                    
+                    await _contractService.Clear();
+                    await _factionService.Clear();                    
                     _shipService.Clear();
                     _waypointService.Clear();
                 }
@@ -95,8 +95,8 @@ internal class LogInService : ILogInService
             RegisterResponseData registerResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<RegisterResponseData, RegisterRequest>("register", request);
             await _tokenRepository.UpdateTokenAsync(registerResponseData.Token); 
             await _agentService.UpdateAgent(registerResponseData.Agent);            
-            _factionService.AddOrUpdateFaction(registerResponseData.Faction);            
-            _contractService.AddOrUpdateContract(registerResponseData.Contract);
+            await _factionService.AddOrUpdateFaction(registerResponseData.Faction);            
+            await _contractService.AddOrUpdateContract(registerResponseData.Contract);
         }
         catch (StarTradersResponseJsonException ex)
         {

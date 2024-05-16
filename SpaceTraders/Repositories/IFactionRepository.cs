@@ -3,7 +3,7 @@
 namespace SpaceTraders.Repositories;
 internal interface IFactionRepository
 {
-    void AddOrUpdateFaction(Faction faction);
-    void Clear();
-    Faction? GetFaction(string symbol);
+    Task AddOrUpdateFaction(Faction faction);
+    Task Clear();
+    Task<Faction?> GetFaction(string symbol);
 }
