@@ -5,10 +5,6 @@ internal class ShipRepository : IShipRepository
 {
     private readonly Dictionary<string, Ship> _ships = new Dictionary<string, Ship>();
 
-    public ShipRepository()
-    {
-    }
-
     public void AddOrUpdateShip(Ship ship)
     {
         _ships.Remove(ship.Symbol);

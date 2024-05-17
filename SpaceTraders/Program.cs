@@ -45,7 +45,8 @@ internal class Program
         builder.Services.AddTransient<IFactionRepository, FactionDatabaseRepository>();
         builder.Services.AddSingleton<ITokenMemoryOnlyRepository, TokenMemoryOnlyRepository>();
         builder.Services.AddTransient<ITokenRepository, TokenDatabaseRepository>();
-        builder.Services.AddSingleton<IMarketRepository, MarketRepository>();
+        builder.Services.AddSingleton<IMarketMemoryOnlyRepository, MarketMemoryOnlyRepository>();
+        builder.Services.AddTransient<IMarketRepository, MarketDatabaseRepository>();
         builder.Services.AddSingleton<IShipInfoRepository, ShipInfoRepository>();
 
         //Add throttle service:

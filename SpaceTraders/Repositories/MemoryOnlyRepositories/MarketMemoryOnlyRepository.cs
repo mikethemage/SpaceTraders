@@ -1,14 +1,11 @@
 ﻿using SpaceTraders.Api.Models;
 
 namespace SpaceTraders.Repositories.MemoryOnlyRepositories;
-internal class MarketRepository : IMarketRepository
+internal class MarketMemoryOnlyRepository : IMarketMemoryOnlyRepository
 {
     private readonly Dictionary<string, Market> _markets = new Dictionary<string, Market>();
 
-    public MarketRepository()
-    {
-
-    }
+    public bool IsLoaded { get; set; } = false;
 
     public Market? GetMarket(string waypointSymbol)
     {

@@ -3,7 +3,7 @@
 namespace SpaceTraders.Repositories;
 internal interface IMarketRepository
 {
-    void AddOrUpdateMarket(Market marketToAdd);
-    void Clear();
-    Market? GetMarket(string waypointSymbol);
+    Task AddOrUpdateMarket(Market marketToAdd);
+    Task Clear();
+    Task<Market?> GetMarket(string waypointSymbol);
 }

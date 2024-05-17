@@ -1,5 +1,5 @@
 ﻿namespace SpaceTraders.Api.Models;
-internal class Market
+public class Market
 {
     public string Symbol { get; set; } = string.Empty;
     public List<TradeGood> Exports { get; set; } = new List<TradeGood>();
