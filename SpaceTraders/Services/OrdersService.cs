@@ -193,9 +193,7 @@ internal class OrdersService : IOrdersService
 
             _logger.LogInformation("Ship {shipSymbol} going to sell cargo at {destinationSymbol}.", shipSymbol, destinationWaypointSymbol);
         }
-    }
-
-    
+    }    
 
     private bool ShouldSellCargo(ShipCargo cargo, string systemSymbol, string waypointSymbol)
     {

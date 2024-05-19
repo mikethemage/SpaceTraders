@@ -29,7 +29,6 @@ internal class MarketService : IMarketService
         return marketData;
     }
 
-
     public async Task<List<string>> GetAllMarketsSellingGood(string systemSymbol, string tradeGood)
     {
         List<string> output = new List<string>();

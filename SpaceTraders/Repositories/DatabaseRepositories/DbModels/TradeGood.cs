@@ -1,12 +1,8 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
-
-namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class TradeGood
 {
-    public int Id { get; set; }
-
-    
+    public int Id { get; set; }    
     public int? ExportId { get; set; }
     public int? ImportId { get; set; }
     public int? ExchangeId { get; set; }

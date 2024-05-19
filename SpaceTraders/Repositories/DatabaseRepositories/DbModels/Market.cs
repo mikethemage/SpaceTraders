@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+
 public class Market
 {
     public int Id { get; set; }

@@ -41,7 +41,9 @@ internal class FactionDatabaseRepository : IFactionRepository
     {
         if (!_factionMemoryOnlyRepository.IsLoaded)
         {
-            List<Faction> factions = await _repositoryDbContext.Factions.ToListAsync();
+            List<Faction> factions = await _repositoryDbContext.Factions
+                .Include(x => x.Traits)
+                .ToListAsync();
             foreach (Faction faction in factions)
             {
                 _factionMemoryOnlyRepository.AddOrUpdateFaction(faction.ToApiModel());

@@ -3,7 +3,6 @@
 public class Contract
 {
     public int Id { get; set; }
-
     public string ContractId { get; set; } = string.Empty;
     public string FactionSymbol { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;

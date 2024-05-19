@@ -22,7 +22,6 @@ internal class TransactionService : ITransactionService
         _agentService = agentService;
     }
 
-
     public async Task SellCargo(string shipSymbol, ShipCargo cargo)
     {
         if (cargo.Inventory.Count > 0)

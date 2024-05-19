@@ -4,8 +4,8 @@ using SpaceTraders.Repositories.DatabaseRepositories.DbContexts;
 using SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 using SpaceTraders.Repositories.MemoryOnlyRepositories;
 
-
 namespace SpaceTraders.Repositories.DatabaseRepositories;
+
 internal class ContractDatabaseRepository : IContractRepository
 {
     private readonly IContractMemoryOnlyRepository _contractMemoryOnlyRepository;
@@ -72,7 +72,6 @@ internal class ContractDatabaseRepository : IContractRepository
         return _contractMemoryOnlyRepository.GetFirstAcceptedContract();
     }
 
-
     public async Task<SpaceTraders.Api.Models.Contract?> GetFirstContract()
     {
         await EnsureAllContractsLoadedFromDb();
@@ -111,6 +110,4 @@ internal class ContractDatabaseRepository : IContractRepository
 
         await _repositoryDbContext.SaveChangesAsync();
     }
-
-
 }
