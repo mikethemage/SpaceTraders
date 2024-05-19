@@ -25,8 +25,8 @@ internal interface IShipService
     Task OrbitShip(string shipSymbol);
     void RemoveShip(string shipSymbol);
     Task<bool> ShouldRefuel(string shipSymbol);
-    void UpdateCargo(string shipSymbol, ShipCargo cargo);
-    void UpdateCooldown(string shipSymbol, Cooldown cooldown);
-    void UpdateFuel(string shipSymbol, ShipFuel fuel);
-    void UpdateNav(string shipSymbol, ShipNav shipNav);
+    Task UpdateCargo(string shipSymbol, ShipCargo cargo);
+    Task UpdateCooldown(string shipSymbol, Cooldown cooldown);
+    Task UpdateFuel(string shipSymbol, ShipFuel fuel);
+    Task UpdateNav(string shipSymbol, ShipNav shipNav);
 }

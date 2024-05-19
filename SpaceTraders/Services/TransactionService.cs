@@ -35,7 +35,7 @@ internal class TransactionService : ITransactionService
             try
             {
                 BuySellCargoResponseData sellCargoResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<BuySellCargoResponseData, CargoRequest>($"my/ships/{shipSymbol}/sell", sellCargoRequest);
-                _shipService.UpdateCargo(shipSymbol, sellCargoResponseData.Cargo);
+                await _shipService.UpdateCargo(shipSymbol, sellCargoResponseData.Cargo);
                 await _agentService.UpdateAgent(sellCargoResponseData.Agent);
                 _logger.LogInformation("Ship {shipSymbol} has sold {sellCargoResponseDataTransactionUnits} of {sellCargoResponseDataTransactionTradeSymbol}", shipSymbol, sellCargoResponseData.Transaction.Units, sellCargoResponseData.Transaction.TradeSymbol);
             }
@@ -57,7 +57,7 @@ internal class TransactionService : ITransactionService
     public async Task RefuelShip(string shipSymbol)
     {
         RefuelResponseData refuelResponse = await _spaceTradersApiService.PostToStarTradersApi<RefuelResponseData>($"my/ships/{shipSymbol}/refuel");
-        _shipService.UpdateFuel(shipSymbol, refuelResponse.Fuel);
+        await _shipService.UpdateFuel(shipSymbol, refuelResponse.Fuel);
         await _agentService.UpdateAgent(refuelResponse.Agent);
     }
 }

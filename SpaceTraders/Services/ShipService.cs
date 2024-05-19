@@ -63,7 +63,7 @@ internal class ShipService : IShipService
 
     public async Task<Ship?> GetShip(string shipSymbol)
     {
-        Ship? ship = _shipRepository.GetShip(shipSymbol);
+        Ship? ship = await _shipRepository.GetShip(shipSymbol);
         if (ship != null)
         {
             return ship;
@@ -84,12 +84,12 @@ internal class ShipService : IShipService
     private async Task EnsureAllShipsLoaded()
     {
         int expectedShipCount = await _agentService.GetShipCount();
-        if (_shipRepository.GetShipCount() != expectedShipCount)
+        if (await _shipRepository.GetShipCount() != expectedShipCount)
         {
             List<Ship> ships = await _spaceTradersApiService.GetAllFromStarTradersApi<Ship>("my/ships");
             AddOrUpdateShips(ships);
         }
-        List<string> apiShipSymbols = _shipRepository.GetAllShips();
+        List<string> apiShipSymbols = await _shipRepository.GetAllShips();
         List<string> missingShips = _shipInfoRepository.GetMissingShips(apiShipSymbols);
         foreach (string missingShipSymbol in missingShips)
         {
@@ -105,14 +105,14 @@ internal class ShipService : IShipService
     {
         await EnsureAllShipsLoaded();
 
-        return _shipRepository.GetAllShips();
+        return await _shipRepository.GetAllShips();
     }
 
     public async Task<List<string>> GetAllSystemsWithShips()
     {
         await EnsureAllShipsLoaded();
 
-        return _shipRepository.GetAllSystemsWithShips();
+        return await _shipRepository.GetAllSystemsWithShips();
     }
 
     public async Task<List<string>> GetAllMiningShips()
@@ -125,14 +125,14 @@ internal class ShipService : IShipService
     public async Task<List<string>> GetAllIdleMiningShips()
     {
         List<string> miningShipSymbols = await GetAllMiningShips();
-        return _shipRepository.GetAllIdleMiningShips(miningShipSymbols);
+        return await _shipRepository.GetAllIdleMiningShips(miningShipSymbols);
     }
 
     public async Task<DateTime> GetNextAvailabilityTimeForMiningShips()
     {
         List<string> miningShipSymbols = await GetAllMiningShips();
 
-        return _shipRepository.GetNextAvailabilityTimeForMiningShips(miningShipSymbols);
+        return await _shipRepository.GetNextAvailabilityTimeForMiningShips(miningShipSymbols);
     }
 
     public void Clear()
@@ -151,7 +151,7 @@ internal class ShipService : IShipService
         if (ship.Cooldown.RemainingSeconds > 0 && ship.Cooldown.Expiration < DateTime.UtcNow)
         {
             Cooldown cooldown = await _spaceTradersApiService.GetFromStarTradersApi<Cooldown>($"my/ships/{shipSymbol}/cooldown");
-            UpdateCooldown(shipSymbol, cooldown);
+            await UpdateCooldown(shipSymbol, cooldown);
             return cooldown;
         }
         return ship.Cooldown;
@@ -167,15 +167,15 @@ internal class ShipService : IShipService
         if (ship.Nav.Status == ShipNavStatus.IN_TRANSIT && ship.Nav.Route.Arrival < DateTime.UtcNow)
         {
             ShipNav nav = await _spaceTradersApiService.GetFromStarTradersApi<ShipNav>($"my/ships/{shipSymbol}/nav");
-            UpdateNav(shipSymbol, nav);
+            await UpdateNav(shipSymbol, nav);
             return nav;
         }
         return ship.Nav;
     }
 
-    public void UpdateNav(string shipSymbol, ShipNav shipNav)
+    public async Task UpdateNav(string shipSymbol, ShipNav shipNav)
     {
-        if (_shipRepository.UpdateNav(shipSymbol, shipNav))
+        if (await _shipRepository.UpdateNav(shipSymbol, shipNav))
         {
             if (_shipInfoRepository.IsShipKnown(shipSymbol))
             {
@@ -194,9 +194,9 @@ internal class ShipService : IShipService
         return (await GetShip(shipSymbol))?.Cargo;
     }
 
-    public void UpdateFuel(string shipSymbol, ShipFuel fuel)
+    public async Task UpdateFuel(string shipSymbol, ShipFuel fuel)
     {
-        if (_shipRepository.UpdateFuel(shipSymbol, fuel))
+        if (await _shipRepository.UpdateFuel(shipSymbol, fuel))
         {
             if (_shipInfoRepository.IsShipKnown(shipSymbol))
             {
@@ -205,9 +205,9 @@ internal class ShipService : IShipService
         }
     }
 
-    public void UpdateCargo(string shipSymbol, ShipCargo cargo)
+    public async Task UpdateCargo(string shipSymbol, ShipCargo cargo)
     {
-        if (_shipRepository.UpdateCargo(shipSymbol, cargo))
+        if (await _shipRepository.UpdateCargo(shipSymbol, cargo))
         {
             if (_shipInfoRepository.IsShipKnown(shipSymbol))
             {
@@ -216,9 +216,9 @@ internal class ShipService : IShipService
         }
     }
 
-    public void UpdateCooldown(string shipSymbol, Cooldown cooldown)
+    public async Task UpdateCooldown(string shipSymbol, Cooldown cooldown)
     {
-        if (_shipRepository.UpdateCooldown(shipSymbol, cooldown))
+        if (await _shipRepository.UpdateCooldown(shipSymbol, cooldown))
         {
             if (_shipInfoRepository.IsShipKnown(shipSymbol))
             {
@@ -238,15 +238,15 @@ internal class ShipService : IShipService
                 Units = cargo.Inventory.Where(x => x.Symbol == tradeSymbol).Select(x => x.Units).FirstOrDefault()
             };
             JettisonCargoResponseData jettisonCargoResponseData = await _spaceTradersApiService.PostToStarTradersApiWithPayload<JettisonCargoResponseData, CargoRequest>($"my/ships/{shipSymbol}/jettison", jettisonCargoRequest);
-            UpdateCargo(shipSymbol, jettisonCargoResponseData.Cargo);
+            await UpdateCargo(shipSymbol, jettisonCargoResponseData.Cargo);
         }
     }
 
     public async Task ExtractWithShip(string shipSymbol)
     {
         ExtractResponseData extractResponseData = await _spaceTradersApiService.PostToStarTradersApi<ExtractResponseData>($"my/ships/{shipSymbol}/extract");
-        UpdateCargo(shipSymbol, extractResponseData.Cargo);
-        UpdateCooldown(shipSymbol, extractResponseData.Cooldown);
+        await UpdateCargo(shipSymbol, extractResponseData.Cargo);
+        await UpdateCooldown(shipSymbol, extractResponseData.Cooldown);
         _logger.LogInformation("Ship {shipSymbol} has extracted {extractResponseDataExtractionYieldUnits} {extractResponseDataExtractionYieldSymbol}", shipSymbol, extractResponseData.Extraction.Yield.Units, extractResponseData.Extraction.Yield.Symbol);
         _logger.LogInformation("Ship {shipSymbol} is on cooldown until {shipCooldownExpiration:dd/MM/yyyy HH:mm:ss}", shipSymbol, extractResponseData.Cooldown.Expiration);
     }
@@ -254,21 +254,21 @@ internal class ShipService : IShipService
     public async Task OrbitShip(string shipSymbol)
     {
         DockOrbitResponseData orbitResponse = await _spaceTradersApiService.PostToStarTradersApi<DockOrbitResponseData>($"my/ships/{shipSymbol}/orbit");
-        UpdateNav(shipSymbol, orbitResponse.Nav);
+        await UpdateNav(shipSymbol, orbitResponse.Nav);
     }
 
     public async Task DockShip(string shipSymbol)
     {
         DockOrbitResponseData dockResponse = await _spaceTradersApiService.PostToStarTradersApi<DockOrbitResponseData>($"my/ships/{shipSymbol}/dock");
-        UpdateNav(shipSymbol, dockResponse.Nav);
+        await UpdateNav(shipSymbol, dockResponse.Nav);
     }
 
     public async Task NavigateShip(string shipSymbol, string destinationWaypointSymbol)
     {
         NavigateRequest navigateRequest = new NavigateRequest { WaypointSymbol = destinationWaypointSymbol };
         NavigateResponseData navigateResponse = await _spaceTradersApiService.PostToStarTradersApiWithPayload<NavigateResponseData, NavigateRequest>($"my/ships/{shipSymbol}/navigate", navigateRequest);
-        UpdateFuel(shipSymbol, navigateResponse.Fuel);
-        UpdateNav(shipSymbol, navigateResponse.Nav);
+        await UpdateFuel(shipSymbol, navigateResponse.Fuel);
+        await UpdateNav(shipSymbol, navigateResponse.Nav);
         _logger.LogInformation("Ship: {shipSymbol} is navigating to: {waypointSymbol}, Eta: {arrival:dd/MM/yyyy hh:mm:ss}", shipSymbol, destinationWaypointSymbol, navigateResponse.Nav.Route.Arrival);
         foreach (ShipConditionEvent shipConditionEvent in navigateResponse.Events)
         {

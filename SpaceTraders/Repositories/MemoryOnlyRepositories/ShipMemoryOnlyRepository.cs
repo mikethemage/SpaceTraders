@@ -1,9 +1,10 @@
 ﻿using SpaceTraders.Api.Models;
 
 namespace SpaceTraders.Repositories.MemoryOnlyRepositories;
-internal class ShipRepository : IShipRepository
+internal class ShipMemoryOnlyRepository : IShipMemoryOnlyRepository
 {
     private readonly Dictionary<string, Ship> _ships = new Dictionary<string, Ship>();
+    public bool IsLoaded { get; set; } = false;
 
     public void AddOrUpdateShip(Ship ship)
     {

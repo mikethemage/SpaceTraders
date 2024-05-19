@@ -19,4 +19,5 @@ public class RepositoryDbContext : DbContext
     public DbSet<Faction> Factions { get; set; }
     public DbSet<Market> Markets { get; set; }  
     public DbSet<Waypoint> Waypoints { get; set; }
+    public DbSet<Ship> Ships { get; set; }
 }

@@ -37,7 +37,8 @@ internal class Program
         // Add repositories as singletons
         builder.Services.AddSingleton<IAgentMemoryOnlyRepository, AgentMemoryOnlyRepository>();
         builder.Services.AddTransient<IAgentRepository, AgentDatabaseRepository>();
-        builder.Services.AddSingleton<IShipRepository, ShipRepository>();
+        builder.Services.AddSingleton<IShipMemoryOnlyRepository, ShipMemoryOnlyRepository>();
+        builder.Services.AddTransient<IShipRepository, ShipDatabaseRepository>();
         builder.Services.AddSingleton<IContractMemoryOnlyRepository, ContractMemoryOnlyRepository>();
         builder.Services.AddTransient<IContractRepository, ContractDatabaseRepository>();
         builder.Services.AddSingleton<IWaypointMemoryOnlyRepository, WaypointMemoryOnlyRepository>();
