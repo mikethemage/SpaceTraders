@@ -20,14 +20,14 @@ internal class WaypointService : IWaypointService
         _marketRepository = marketRepository;
     }
 
-    public WaypointType? GetWaypointType(string systemSymbol, string waypointSymbol)
+    public async Task<WaypointType?> GetWaypointType(string systemSymbol, string waypointSymbol)
     {
-        return _waypointRepository.GetWaypointType(systemSymbol, waypointSymbol);
+        return await _waypointRepository.GetWaypointType(systemSymbol, waypointSymbol);
     }
 
-    public string? GetNearestWaypointOfType(string systemSymbol, string sourceWaypointSymbol, WaypointType waypointType)
+    public async Task<string?> GetNearestWaypointOfType(string systemSymbol, string sourceWaypointSymbol, WaypointType waypointType)
     {
-        return _waypointRepository.GetNearestWaypointOfType(systemSymbol, sourceWaypointSymbol, waypointType);
+        return await _waypointRepository.GetNearestWaypointOfType(systemSymbol, sourceWaypointSymbol, waypointType);
     }
 
 
@@ -38,7 +38,7 @@ internal class WaypointService : IWaypointService
             List<Waypoint> waypoints = await _spaceTradersApiService.GetAllFromStarTradersApi<Waypoint>($"systems/{systemSymbol}/waypoints");
             foreach (Waypoint waypoint in waypoints)
             {
-                _waypointRepository.AddOrUpdateWaypoint(waypoint);
+                await _waypointRepository.AddOrUpdateWaypoint(waypoint);
             }
         }
         catch (StarTradersResponseJsonException ex)
@@ -51,11 +51,11 @@ internal class WaypointService : IWaypointService
         }
     }
 
-    public double GetDistance(string systemSymbol, string sourceSymbol, string destinationSymbol)
+    public async Task<double> GetDistance(string systemSymbol, string sourceSymbol, string destinationSymbol)
     {
         
-        Waypoint? source = _waypointRepository.GetWaypoint(systemSymbol, sourceSymbol);
-        Waypoint? destination = _waypointRepository.GetWaypoint(systemSymbol, destinationSymbol);
+        Waypoint? source = await _waypointRepository.GetWaypoint(systemSymbol, sourceSymbol);
+        Waypoint? destination = await _waypointRepository.GetWaypoint(systemSymbol, destinationSymbol);
 
         if(source == null || destination == null)
         {
@@ -67,9 +67,9 @@ internal class WaypointService : IWaypointService
                 Math.Pow(destination.Y - source.Y, 2));
     }
 
-    public void Clear()
+    public async Task Clear()
     {
-        _marketRepository.Clear();
-        _waypointRepository.Clear();
+        await _marketRepository.Clear();
+        await _waypointRepository.Clear();
     }
 }

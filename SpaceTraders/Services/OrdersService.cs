@@ -41,7 +41,7 @@ internal class OrdersService : IOrdersService
 
         ShipCargo cargo = await _shipService.GetShipCargo(shipSymbol) ?? throw new Exception("Error getting ship cargo!");
 
-        if (ShouldSellCargo(cargo, nav.SystemSymbol, nav.WaypointSymbol))
+        if (await ShouldSellCargo(cargo, nav.SystemSymbol, nav.WaypointSymbol))
         {
             await CheckAndHandleCargoSelling(shipSymbol, nav.SystemSymbol, nav.WaypointSymbol, cargo);
             return;
@@ -107,16 +107,16 @@ internal class OrdersService : IOrdersService
         var possibleContractDestinations =  await FindContractDestinations(cargo.Inventory);
         if (possibleContractDestinations.Count > 0)
         {
-            return FindNearestWaypoint(systemSymbol, waypointSymbol, possibleContractDestinations, fuel);
+            return await FindNearestWaypoint(systemSymbol, waypointSymbol, possibleContractDestinations, fuel);
         }
         else
         {
             possibleContractDestinations = await FindMarketDestinations(systemSymbol, cargo.Inventory);
-            return FindNearestWaypoint(systemSymbol, waypointSymbol, possibleContractDestinations, fuel);
+            return await FindNearestWaypoint(systemSymbol, waypointSymbol, possibleContractDestinations, fuel);
         }
     }
 
-    private string? FindNearestWaypoint(string systemSymbol, string waypointSymbol, List<string> possibleDestinations, ShipFuel fuel)
+    private async Task<string?> FindNearestWaypoint(string systemSymbol, string waypointSymbol, List<string> possibleDestinations, ShipFuel fuel)
     {
         if(possibleDestinations.Count <= 0)
         {
@@ -128,7 +128,7 @@ internal class OrdersService : IOrdersService
 
         foreach (string possibleDestination in possibleDestinations)
         {
-            double distance = _waypointService.GetDistance(systemSymbol, waypointSymbol, possibleDestination);
+            double distance = await _waypointService.GetDistance(systemSymbol, waypointSymbol, possibleDestination);
             if (distance < shortestDistance)
             {
                 foundDestination = possibleDestination;
@@ -195,9 +195,9 @@ internal class OrdersService : IOrdersService
         }
     }    
 
-    private bool ShouldSellCargo(ShipCargo cargo, string systemSymbol, string waypointSymbol)
+    private async Task<bool> ShouldSellCargo(ShipCargo cargo, string systemSymbol, string waypointSymbol)
     {
-        if (_waypointService.GetWaypointType(systemSymbol, waypointSymbol) == WaypointType.ENGINEERED_ASTEROID)
+        if (await _waypointService.GetWaypointType(systemSymbol, waypointSymbol) == WaypointType.ENGINEERED_ASTEROID)
         {
             return cargo.Units == cargo.Capacity;
         }
@@ -209,7 +209,7 @@ internal class OrdersService : IOrdersService
 
     private async Task MineOrbit(string shipSymbol, string systemSymbol, string waypointSymbol, ShipCargo cargo)
     {
-        if (_waypointService.GetWaypointType(systemSymbol, waypointSymbol) == WaypointType.ENGINEERED_ASTEROID)
+        if (await _waypointService.GetWaypointType(systemSymbol, waypointSymbol) == WaypointType.ENGINEERED_ASTEROID)
         {
             if (await _shipService.IsInOrbit(shipSymbol))
             {
@@ -235,7 +235,7 @@ internal class OrdersService : IOrdersService
                 }
                 else
                 {
-                    string? targetMiningSite = _waypointService.GetNearestWaypointOfType(systemSymbol, waypointSymbol, WaypointType.ENGINEERED_ASTEROID);
+                    string? targetMiningSite = await _waypointService.GetNearestWaypointOfType(systemSymbol, waypointSymbol, WaypointType.ENGINEERED_ASTEROID);
                     if (targetMiningSite == null)
                     {
                         throw new Exception("Can't find mining site!");

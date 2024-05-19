@@ -40,7 +40,8 @@ internal class Program
         builder.Services.AddSingleton<IShipRepository, ShipRepository>();
         builder.Services.AddSingleton<IContractMemoryOnlyRepository, ContractMemoryOnlyRepository>();
         builder.Services.AddTransient<IContractRepository, ContractDatabaseRepository>();
-        builder.Services.AddSingleton<IWaypointRepository, WaypointRepository>();
+        builder.Services.AddSingleton<IWaypointMemoryOnlyRepository, WaypointMemoryOnlyRepository>();
+        builder.Services.AddTransient<IWaypointRepository, WaypointDatabaseRepository>();
         builder.Services.AddSingleton<IFactionMemoryOnlyRepository, FactionMemoryOnlyRepository>();
         builder.Services.AddTransient<IFactionRepository, FactionDatabaseRepository>();
         builder.Services.AddSingleton<ITokenMemoryOnlyRepository, TokenMemoryOnlyRepository>();

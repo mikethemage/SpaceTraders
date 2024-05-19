@@ -63,7 +63,7 @@ internal class LogInService : ILogInService
                     await _contractService.Clear();
                     await _factionService.Clear();                    
                     _shipService.Clear();
-                    _waypointService.Clear();
+                    await _waypointService.Clear();
                 }
                 else
                 {

@@ -32,7 +32,7 @@ internal class MarketService : IMarketService
     public async Task<List<string>> GetAllMarketsSellingGood(string systemSymbol, string tradeGood)
     {
         List<string> output = new List<string>();
-        List<string> possibleMarkets = _waypointRepository.GetWaypointsWithTraits(systemSymbol, WaypointTraitSymbol.MARKETPLACE);
+        List<string> possibleMarkets = await _waypointRepository.GetWaypointsWithTraits(systemSymbol, WaypointTraitSymbol.MARKETPLACE);
         foreach (string possibleMarket in possibleMarkets)
         {
             Market? market = await _marketRepository.GetMarket(possibleMarket);
@@ -52,7 +52,7 @@ internal class MarketService : IMarketService
 
     public async Task<WaypointWithDistance?> GetNearestMarketSellingGood(string systemSymbol, string sourceWaypointSymbol, string tradeGood)
     {
-        List<WaypointWithDistance> possibleMarkets = _waypointRepository.GetWaypointsWithTraitsFromLocation(systemSymbol, sourceWaypointSymbol, WaypointTraitSymbol.MARKETPLACE);
+        List<WaypointWithDistance> possibleMarkets = await _waypointRepository.GetWaypointsWithTraitsFromLocation(systemSymbol, sourceWaypointSymbol, WaypointTraitSymbol.MARKETPLACE);
         foreach (WaypointWithDistance possibleMarket in possibleMarkets)
         {
             Market? market = await _marketRepository.GetMarket(possibleMarket.WaypointSymbol);

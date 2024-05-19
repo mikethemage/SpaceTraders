@@ -3,9 +3,11 @@ using SpaceTraders.Models;
 
 namespace SpaceTraders.Repositories.MemoryOnlyRepositories;
 
-internal class WaypointRepository : IWaypointRepository
+internal class WaypointMemoryOnlyRepository : IWaypointMemoryOnlyRepository
 {
     private readonly Dictionary<string, Dictionary<string, Waypoint>> _waypoints = new Dictionary<string, Dictionary<string, Waypoint>>();
+
+    public bool IsLoaded { get; set; } = false;
 
     public WaypointType? GetWaypointType(string systemSymbol, string waypointSymbol)
     {

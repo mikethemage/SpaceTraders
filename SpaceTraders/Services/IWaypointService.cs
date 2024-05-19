@@ -4,9 +4,9 @@ namespace SpaceTraders.Services;
 
 internal interface IWaypointService
 {
-    void Clear();
-    double GetDistance(string systemSymbol, string sourceSymbol, string destinationSymbol);
-    string? GetNearestWaypointOfType(string systemSymbol, string sourceWaypointSymbol, WaypointType waypointType);
+    Task Clear();
+    Task<double> GetDistance(string systemSymbol, string sourceSymbol, string destinationSymbol);
+    Task<string?> GetNearestWaypointOfType(string systemSymbol, string sourceWaypointSymbol, WaypointType waypointType);
     Task GetWaypoints(string systemSymbol);
-    WaypointType? GetWaypointType(string systemSymbol, string waypointSymbol);
+    Task<WaypointType?> GetWaypointType(string systemSymbol, string waypointSymbol);
 }
