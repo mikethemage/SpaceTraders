@@ -41,11 +41,12 @@ internal class FactionDatabaseRepository : IFactionRepository
     {
         if (!_factionMemoryOnlyRepository.IsLoaded)
         {
-            List<Faction> factions = await _repositoryDbContext.Factions
-                .Include(x => x.Traits)
-                .ToListAsync();
+            List<Faction> factions = await _repositoryDbContext.Factions.ToListAsync();
+
             foreach (Faction faction in factions)
             {
+                faction.Traits = await _repositoryDbContext.FactionTrait.Where(x => x.FactionId == faction.Id).ToListAsync();
+
                 _factionMemoryOnlyRepository.AddOrUpdateFaction(faction.ToApiModel());
             }
             _factionMemoryOnlyRepository.IsLoaded = true;

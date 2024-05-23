@@ -54,12 +54,14 @@ internal class ContractDatabaseRepository : IContractRepository
     {
         if (!_contractMemoryOnlyRepository.IsLoaded)
         {
-            List<Contract> contracts = await _repositoryDbContext.Contracts
-                .Include(x=>x.Terms)
-                .ThenInclude(x=>x.Payment)
-                .Include(x => x.Terms)
-                .ThenInclude(x => x.Deliver)
-                .ToListAsync();            
+            List<Contract> contracts = await _repositoryDbContext.Contracts.ToListAsync();
+
+            foreach (Contract contract in contracts)
+            {
+                contract.Terms = await _repositoryDbContext.ContractTerms.Where(x=>x.ContractId==contract.Id).SingleAsync();
+                contract.Terms.Payment = await _repositoryDbContext.ContractPayment.Where(x => x.ContractTermsId == contract.Terms.Id).SingleAsync();
+                contract.Terms.Deliver = await _repositoryDbContext.ContractDeliverGood.Where(x => x.ContractTermsId == contract.Terms.Id).ToListAsync();
+            }
 
             _contractMemoryOnlyRepository.AddOrUpdateContracts(contracts.Select(x => x.ToApiModel()).ToList());
             _contractMemoryOnlyRepository.IsLoaded = true;

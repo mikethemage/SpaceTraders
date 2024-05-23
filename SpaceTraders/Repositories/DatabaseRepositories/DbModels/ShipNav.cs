@@ -1,4 +1,6 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class ShipNav
 {
@@ -8,6 +10,9 @@ public class ShipNav
     public ShipNavRoute Route { get; set; } = null!;
     public string Status { get; set; } = string.Empty;
     public string FlightMode { get; set; } = string.Empty;
+
+    [ForeignKey(nameof(Ship))]
+    public int ShipId { get; set; }
 
     public SpaceTraders.Api.Models.ShipNav ToApiModel()
     {

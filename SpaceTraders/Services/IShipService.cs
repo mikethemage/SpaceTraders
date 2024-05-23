@@ -3,9 +3,9 @@
 namespace SpaceTraders.Services;
 internal interface IShipService
 {
-    void AddOrUpdateShip(Ship ship);
-    void AddOrUpdateShips(List<Ship> ships);
-    void Clear();
+    Task AddOrUpdateShip(Ship ship);
+    Task AddOrUpdateShips(List<Ship> ships);
+    Task Clear();
     Task DockShip(string shipSymbol);
     Task ExtractWithShip(string shipSymbol);
     Task<List<string>> GetAllIdleMiningShips();
@@ -23,7 +23,7 @@ internal interface IShipService
     Task JettisonCargo(string shipSymbol, string tradeSymbol);
     Task NavigateShip(string shipSymbol, string destinationWaypointSymbol);
     Task OrbitShip(string shipSymbol);
-    void RemoveShip(string shipSymbol);
+    Task RemoveShip(string shipSymbol);
     Task<bool> ShouldRefuel(string shipSymbol);
     Task UpdateCargo(string shipSymbol, ShipCargo cargo);
     Task UpdateCooldown(string shipSymbol, Cooldown cooldown);

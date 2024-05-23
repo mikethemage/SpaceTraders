@@ -1,8 +1,13 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class FactionTrait
 {
     public int Id { get; set; }
+
+    [ForeignKey(nameof(Faction))]
+    public int FactionId { get; set; }
     public string Symbol { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;

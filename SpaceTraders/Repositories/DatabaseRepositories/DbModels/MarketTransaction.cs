@@ -1,4 +1,6 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class MarketTransaction
 {
@@ -13,6 +15,9 @@ public class MarketTransaction
     public int PricePerUnit { get; set; }
     public int TotalPrice { get; set; }
     public DateTime TimeStamp { get; set; }
+
+    [ForeignKey(nameof(Market))]
+    public int MarketId { get; set; }
 
     public SpaceTraders.Api.Models.MarketTransaction ToApiModel()
     {

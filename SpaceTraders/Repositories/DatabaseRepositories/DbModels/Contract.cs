@@ -1,11 +1,14 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class Contract
-{
+{    
     public int Id { get; set; }
     public string ContractId { get; set; } = string.Empty;
     public string FactionSymbol { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
+    
     public ContractTerms Terms { get; set; } = null!;
     public bool Accepted { get; set; }
     public bool Fulfilled { get; set; }

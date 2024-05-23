@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SpaceTraders.Repositories.DatabaseRepositories.DbContexts;
 
@@ -10,9 +11,11 @@ using SpaceTraders.Repositories.DatabaseRepositories.DbContexts;
 namespace SpaceTraders.Migrations
 {
     [DbContext(typeof(RepositoryDbContext))]
-    partial class RepositoryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240523150529_Contract fix up pt 2")]
+    partial class Contractfixuppt2
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.4");
@@ -109,7 +112,7 @@ namespace SpaceTraders.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ContractTermsId")
+                    b.Property<int?>("ContractTermsId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("DestinationSymbol")
@@ -240,7 +243,7 @@ namespace SpaceTraders.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("FactionId")
+                    b.Property<int?>("FactionId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Name")
@@ -1074,9 +1077,7 @@ namespace SpaceTraders.Migrations
                 {
                     b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ContractTerms", null)
                         .WithMany("Deliver")
-                        .HasForeignKey("ContractTermsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ContractTermsId");
                 });
 
             modelBuilder.Entity("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ContractPayment", b =>
@@ -1101,9 +1102,7 @@ namespace SpaceTraders.Migrations
                 {
                     b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.Faction", null)
                         .WithMany("Traits")
-                        .HasForeignKey("FactionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("FactionId");
                 });
 
             modelBuilder.Entity("SpaceTraders.Repositories.DatabaseRepositories.DbModels.MarketTradeGood", b =>

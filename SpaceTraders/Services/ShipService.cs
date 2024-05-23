@@ -24,9 +24,9 @@ internal class ShipService : IShipService
         _agentService = agentService;
     }
 
-    public void AddOrUpdateShip(Ship ship)
+    public async Task AddOrUpdateShip(Ship ship)
     {
-        _shipRepository.AddOrUpdateShip(ship);
+        await _shipRepository.AddOrUpdateShip(ship);
 
         if (!_shipInfoRepository.IsShipKnown(ship.Symbol))
         {
@@ -46,18 +46,18 @@ internal class ShipService : IShipService
         }
     }
 
-    public void RemoveShip(string shipSymbol)
+    public async Task RemoveShip(string shipSymbol)
     {
-        _shipRepository.RemoveShip(shipSymbol);
+        await _shipRepository.RemoveShip(shipSymbol);
 
         _shipInfoRepository.RemoveShipInfo(shipSymbol);
     }
 
-    public void AddOrUpdateShips(List<Ship> ships)
+    public async Task AddOrUpdateShips(List<Ship> ships)
     {
         foreach (Ship ship in ships)
         {
-            AddOrUpdateShip(ship);
+            await AddOrUpdateShip(ship);
         }
     }
 
@@ -72,7 +72,7 @@ internal class ShipService : IShipService
         {
             //Get ship from API and add to dictionary
             ship = await _spaceTradersApiService.GetFromStarTradersApi<Ship>($"my/ships/{shipSymbol}");
-            AddOrUpdateShip(ship);
+            await AddOrUpdateShip(ship);
             return ship;
         }
         else
@@ -87,7 +87,7 @@ internal class ShipService : IShipService
         if (await _shipRepository.GetShipCount() != expectedShipCount)
         {
             List<Ship> ships = await _spaceTradersApiService.GetAllFromStarTradersApi<Ship>("my/ships");
-            AddOrUpdateShips(ships);
+            await AddOrUpdateShips(ships);
         }
         List<string> apiShipSymbols = await _shipRepository.GetAllShips();
         List<string> missingShips = _shipInfoRepository.GetMissingShips(apiShipSymbols);
@@ -135,9 +135,9 @@ internal class ShipService : IShipService
         return await _shipRepository.GetNextAvailabilityTimeForMiningShips(miningShipSymbols);
     }
 
-    public void Clear()
+    public async Task Clear()
     {
-        _shipRepository.Clear();
+        await _shipRepository.Clear();
         _shipInfoRepository.Clear();
     }
 

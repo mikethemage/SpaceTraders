@@ -62,7 +62,7 @@ internal class LogInService : ILogInService
                     await _agentService.UpdateAgent(null); 
                     await _contractService.Clear();
                     await _factionService.Clear();                    
-                    _shipService.Clear();
+                    await _shipService.Clear();
                     await _waypointService.Clear();
                 }
                 else
@@ -97,6 +97,7 @@ internal class LogInService : ILogInService
             await _agentService.UpdateAgent(registerResponseData.Agent);            
             await _factionService.AddOrUpdateFaction(registerResponseData.Faction);            
             await _contractService.AddOrUpdateContract(registerResponseData.Contract);
+            await _shipService.AddOrUpdateShip(registerResponseData.Ship);
         }
         catch (StarTradersResponseJsonException ex)
         {

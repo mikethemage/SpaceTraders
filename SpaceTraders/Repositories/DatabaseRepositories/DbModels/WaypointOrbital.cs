@@ -1,9 +1,14 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class WaypointOrbital
 {
     public int Id { get; set; }
     public string Symbol { get; set; } = string.Empty;
+
+    [ForeignKey(nameof(Waypoint))]
+    public int WaypointId { get; set; }
 
     public SpaceTraders.Api.Models.WaypointOrbital ToApiModel()
     {

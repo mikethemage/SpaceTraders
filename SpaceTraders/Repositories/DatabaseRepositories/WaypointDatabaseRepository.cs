@@ -19,16 +19,16 @@ internal class WaypointDatabaseRepository : IWaypointRepository
     {
         if (!_waypointMemoryOnlyRepository.IsLoaded)
         {
-            List<Waypoint> waypoints = await _repositoryDbContext.Waypoints
-                .Include(x=>x.Orbitals)
-                .Include(x => x.Faction)
-                .Include(x => x.Traits)
-                .Include(x => x.Modifiers)
-                .Include(x => x.Chart)
-                .ToListAsync();
+            List<Waypoint> waypoints = await _repositoryDbContext.Waypoints.ToListAsync();
 
             foreach (Waypoint waypoint in waypoints)
             {
+                waypoint.Orbitals = await _repositoryDbContext.WaypointOrbital.Where(x => x.WaypointId == waypoint.Id).ToListAsync();
+                waypoint.Faction = await _repositoryDbContext.WaypointFaction.SingleOrDefaultAsync(x => x.WaypointId == waypoint.Id);
+                waypoint.Traits = await _repositoryDbContext.WaypointTrait.Where(x => x.WaypointId == waypoint.Id).ToListAsync();
+                waypoint.Modifiers = await _repositoryDbContext.WaypointModifier.Where(x => x.WaypointId == waypoint.Id).ToListAsync();
+                waypoint.Chart = await _repositoryDbContext.Chart.Where(x => x.WaypointId == waypoint.Id).SingleAsync();
+
                 _waypointMemoryOnlyRepository.AddOrUpdateWaypoint(waypoint.ToApiModel());
             }
                 

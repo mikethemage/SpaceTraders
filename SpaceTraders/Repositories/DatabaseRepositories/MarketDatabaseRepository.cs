@@ -43,16 +43,16 @@ internal class MarketDatabaseRepository : IMarketRepository
     {
         if(!_marketMemoryOnlyRepository.IsLoaded)
         {
-            List<Market> markets = await _repositoryDbContext.Markets
-                .Include(x => x.Exports)
-                .Include(x => x.Imports)
-                .Include(x => x.Exchange)
-                .Include(x => x.Transactions)
-                .Include(x => x.TradeGoods)
-                .ToListAsync();
+            List<Market> markets = await _repositoryDbContext.Markets.ToListAsync();
 
             foreach (Market market in markets)
             {
+                market.Exports = await _repositoryDbContext.TradeGood.Where(x => x.ExportId == market.Id).ToListAsync();
+                market.Imports = await _repositoryDbContext.TradeGood.Where(x => x.ImportId == market.Id).ToListAsync();
+                market.Exchange = await _repositoryDbContext.TradeGood.Where(x => x.ExchangeId == market.Id).ToListAsync();
+                market.Transactions = await _repositoryDbContext.MarketTransaction.Where(x => x.MarketId == market.Id).ToListAsync();
+                market.TradeGoods = await _repositoryDbContext.MarketTradeGood.Where(x => x.MarketId == market.Id).ToListAsync();
+
                 _marketMemoryOnlyRepository.AddOrUpdateMarket(market.ToApiModel());
             }
 

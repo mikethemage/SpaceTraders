@@ -1,4 +1,6 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class MarketTradeGood
 {
@@ -10,6 +12,9 @@ public class MarketTradeGood
     public string? Activity { get; set; } = null;
     public int PurchasePrice { get; set; }
     public int SellPrice { get; set; }
+
+    [ForeignKey(nameof(Market))]
+    public int MarketId { get; set; }
 
     public SpaceTraders.Api.Models.MarketTradeGood ToApiModel()
     {

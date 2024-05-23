@@ -1,4 +1,6 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class WaypointTrait
 {
@@ -6,6 +8,9 @@ public class WaypointTrait
     public string Symbol { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+
+    [ForeignKey(nameof(Waypoint))]
+    public int WaypointId { get; set; }
 
     public SpaceTraders.Api.Models.WaypointTrait ToApiModel()
     {

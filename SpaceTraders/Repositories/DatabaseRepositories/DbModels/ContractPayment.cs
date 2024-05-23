@@ -1,8 +1,13 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class ContractPayment
 {
     public int Id { get; set; }
+
+    [ForeignKey(nameof(ContractTerms))]
+    public int ContractTermsId { get; set; }
     public int OnAccepted { get; set; }
     public int OnFulfilled { get; set; }
 

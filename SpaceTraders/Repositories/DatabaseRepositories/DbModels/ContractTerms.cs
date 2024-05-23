@@ -1,9 +1,16 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class ContractTerms
 {
     public int Id { get; set; }
+
+    [ForeignKey("Contract")]
+    public int ContractId { get; set; }
+
     public DateTime Deadline { get; set; }
+    
     public ContractPayment Payment { get; set; } = null!;
     public List<ContractDeliverGood> Deliver { get; set; } = new List<ContractDeliverGood>();
 

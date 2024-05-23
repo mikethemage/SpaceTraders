@@ -1,4 +1,6 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class Chart
 {
@@ -6,6 +8,9 @@ public class Chart
     public string WaypointSymbol { get; set; } = string.Empty;
     public string SubmittedBy { get; set; } = string.Empty;
     public DateTime SubmittedOn { get; set; }
+
+    [ForeignKey(nameof(Waypoint))]
+    public int WaypointId { get; set; }
 
     public SpaceTraders.Api.Models.Chart ToApiModel()
     {

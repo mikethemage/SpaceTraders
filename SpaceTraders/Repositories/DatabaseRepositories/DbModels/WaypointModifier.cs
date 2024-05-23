@@ -6,6 +6,7 @@ public class WaypointModifier
     public string Symbol { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
+    public int WaypointId { get; set; }
 
     public SpaceTraders.Api.Models.WaypointModifier ToApiModel()
     {
