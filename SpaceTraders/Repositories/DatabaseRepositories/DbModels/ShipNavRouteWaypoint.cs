@@ -3,8 +3,7 @@
 public class ShipNavRouteWaypoint
 {
     public int Id { get; set; }
-    public int? OriginId { get; set; }
-    public int? DestinationId { get; set; }
+    
     public string Symbol { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public string SystemSymbol { get; set; } = string.Empty;

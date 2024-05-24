@@ -1,4 +1,6 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class ShipCrew
 {
@@ -9,6 +11,9 @@ public class ShipCrew
     public string Rotation { get; set; } = string.Empty;
     public int Morale { get; set; }
     public int Wages { get; set; }
+
+    [ForeignKey(nameof(Ship))]
+    public int ShipId { get; set; }
 
     public SpaceTraders.Api.Models.ShipCrew ToApiModel()
     {

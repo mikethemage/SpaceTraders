@@ -19,7 +19,7 @@ internal class FactionDatabaseRepository : IFactionRepository
     {
         _factionMemoryOnlyRepository.AddOrUpdateFaction(faction);
 
-        Faction? existingFaction = await _repositoryDbContext.Factions.FindAsync(faction.Symbol);
+        Faction? existingFaction = await _repositoryDbContext.Factions.Where(x => x.Symbol == faction.Symbol).SingleOrDefaultAsync();
         if (existingFaction != null)
         {
             _repositoryDbContext.Remove(existingFaction);

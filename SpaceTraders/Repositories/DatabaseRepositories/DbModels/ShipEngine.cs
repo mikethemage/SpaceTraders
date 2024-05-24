@@ -12,8 +12,14 @@ public class ShipEngine
     public double Integrity { get; set; }
     public int Speed { get; set; }
 
-    [ForeignKey("ShipEngineId")]
+    
     public ShipRequirements Requirements { get; set; } = null!;
+
+    [ForeignKey(nameof(ShipRequirements))]
+    public int RequirementsId { get; set; }
+
+    [ForeignKey(nameof(Ship))]
+    public int ShipId { get; set; }
 
     public SpaceTraders.Api.Models.ShipEngine ToApiModel()
     {

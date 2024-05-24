@@ -6,13 +6,23 @@ public class ShipNavRoute
 {
     public int Id { get; set; }
 
-    [ForeignKey("OriginId")]
+    
     public ShipNavRouteWaypoint Origin { get; set; } = null!;
 
-    [ForeignKey("DestinationId")]
+    
     public ShipNavRouteWaypoint Destination { get; set; } = null!;
     public DateTime Arrival { get; set; }
     public DateTime DepartureTime { get; set; }
+
+
+    [ForeignKey(nameof(ShipNavRouteWaypoint))]
+    public int OriginId { get; set; }
+
+    [ForeignKey(nameof(ShipNavRouteWaypoint))]
+    public int DestinationId { get; set; }
+
+    [ForeignKey(nameof(ShipNav))]
+    public int ShipNavId { get; set; }
 
     public SpaceTraders.Api.Models.ShipNavRoute ToApiModel()
     {

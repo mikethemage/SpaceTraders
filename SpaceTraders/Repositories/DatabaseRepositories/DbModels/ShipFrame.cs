@@ -14,8 +14,14 @@ public class ShipFrame
     public double Condition { get; set; }
     public double Integrity { get; set; }
 
-    [ForeignKey("ShipFrameId")]
+    
     public ShipRequirements Requirements { get; set; } = null!;
+
+    [ForeignKey(nameof(ShipRequirements))]
+    public int RequirementsId { get; set; }
+
+    [ForeignKey(nameof(Ship))]
+    public int ShipId { get; set; }
 
     public SpaceTraders.Api.Models.ShipFrame ToApiModel()
     {

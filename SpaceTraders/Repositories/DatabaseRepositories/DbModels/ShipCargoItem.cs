@@ -1,4 +1,6 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class ShipCargoItem
 {
@@ -7,6 +9,9 @@ public class ShipCargoItem
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int Units { get; set; }
+
+    [ForeignKey(nameof(ShipCargo))]
+    public int ShipCargoId { get; set; }
 
     public SpaceTraders.Api.Models.ShipCargoItem ToApiModel()
     {

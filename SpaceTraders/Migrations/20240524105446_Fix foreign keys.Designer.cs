@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SpaceTraders.Repositories.DatabaseRepositories.DbContexts;
 
@@ -10,9 +11,11 @@ using SpaceTraders.Repositories.DatabaseRepositories.DbContexts;
 namespace SpaceTraders.Migrations
 {
     [DbContext(typeof(RepositoryDbContext))]
-    partial class RepositoryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240524105446_Fix foreign keys")]
+    partial class Fixforeignkeys
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.4");
@@ -497,6 +500,9 @@ namespace SpaceTraders.Migrations
                     b.Property<int>("RequirementsId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ShipEngineId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("ShipId")
                         .HasColumnType("INTEGER");
 
@@ -547,6 +553,9 @@ namespace SpaceTraders.Migrations
                         .HasColumnType("TEXT");
 
                     b.Property<int>("RequirementsId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ShipFrameId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ShipId")
@@ -638,6 +647,9 @@ namespace SpaceTraders.Migrations
                     b.Property<int>("ShipId")
                         .HasColumnType("INTEGER");
 
+                    b.Property<int>("ShipModuleId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Symbol")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -671,6 +683,9 @@ namespace SpaceTraders.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ShipId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ShipMountId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("Strength")
@@ -811,6 +826,9 @@ namespace SpaceTraders.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ShipId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("ShipReactorId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Symbol")

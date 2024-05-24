@@ -22,7 +22,7 @@ internal class AgentService : IAgentService
     public async Task<Agent?> GetAgent()
     {
         Agent? agent = await _agentRepository.GetAgentAsync();
-        if (agent == null)
+        if (agent == null || agent.ShipCount == 0)
         {
             agent = await _spaceTradersApiService.GetFromStarTradersApi<Agent>("my/agent");
             if (agent != null)

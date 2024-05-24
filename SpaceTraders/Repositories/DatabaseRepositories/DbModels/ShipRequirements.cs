@@ -3,13 +3,7 @@
 public class ShipRequirements
 {
     public int Id { get; set; }
-    public int? ShipEngineId { get; set; }
-    public int? ShipFrameId { get; set; }
-    public int? ShipModuleId { get; set; }
-    public int? ShipMountId { get; set; }
-    public int? ShipReactorId { get; set; }
-
-
+    
     public int? Power { get; set; }
     public int? Crew { get; set; }
     public int? Slots { get; set; }

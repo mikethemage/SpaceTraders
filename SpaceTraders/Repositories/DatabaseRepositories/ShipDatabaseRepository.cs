@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using SpaceTraders.Repositories.DatabaseRepositories.DbContexts;
 using SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
@@ -8,51 +9,66 @@ internal class ShipDatabaseRepository : IShipRepository
 {
     private readonly RepositoryDbContext _repositoryDbContext;
     private readonly IShipMemoryOnlyRepository _shipMemoryOnlyRepository;
+    private readonly ILogger<ShipDatabaseRepository> _logger;
 
-    public ShipDatabaseRepository(RepositoryDbContext repositoryDbContext, IShipMemoryOnlyRepository shipMemoryOnlyRepository)
+    public ShipDatabaseRepository(RepositoryDbContext repositoryDbContext, IShipMemoryOnlyRepository shipMemoryOnlyRepository, ILogger<ShipDatabaseRepository> logger)
     {
         _repositoryDbContext = repositoryDbContext;
         _shipMemoryOnlyRepository = shipMemoryOnlyRepository;
+        _logger = logger;
     }
 
     private async Task EnsureLoaded()
     {
         if(!_shipMemoryOnlyRepository.IsLoaded)
         {
-            List<Ship> ships = await _repositoryDbContext.Ships
-                .Include(x => x.Nav)
-                    .ThenInclude(x => x.Route)
-                        .ThenInclude(x => x.Origin)
+            List<Ship> ships = await _repositoryDbContext.Ships.ToListAsync();
 
-                .Include(x => x.Nav)
-                    .ThenInclude(x => x.Route)
-                        .ThenInclude(x => x.Destination)
+            foreach (Ship ship in ships)
+            {
+                try
+                {
+                    ship.Nav = await _repositoryDbContext.ShipNav.Where(x => x.ShipId == ship.Id).SingleAsync();
+                    ship.Nav.Route = await _repositoryDbContext.ShipNavRoute.Where(x => x.ShipNavId == ship.Nav.Id).SingleAsync();
+                    ship.Nav.Route.Origin = await _repositoryDbContext.ShipNavRouteWaypoint.Where(x => x.Id == ship.Nav.Route.OriginId).SingleAsync();
+                    ship.Nav.Route.Destination = await _repositoryDbContext.ShipNavRouteWaypoint.Where(x => x.Id == ship.Nav.Route.DestinationId).SingleAsync();
+                    ship.Crew = await _repositoryDbContext.ShipCrew.Where(x => x.ShipId == ship.Id).SingleAsync();
+                    ship.Fuel = await _repositoryDbContext.ShipFuel.Where(x => x.ShipId == ship.Id).SingleAsync();
+                    ship.Fuel.Consumed = await _repositoryDbContext.ShipFuelConsumed.Where(x => x.ShipFuelId == ship.Fuel.Id).SingleOrDefaultAsync();
 
-                .Include(x => x.Crew)
-                .Include(x => x.Fuel)
-                    .ThenInclude(x => x.Consumed)
-                .Include(x => x.Cooldown)
-                .Include(x => x.Frame)
-                    .ThenInclude(x=>x.Requirements)
 
-                .Include(x => x.Reactor)
-                    .ThenInclude(x => x.Requirements)
+                    ship.Cooldown = await _repositoryDbContext.Cooldown.Where(x => x.ShipId == ship.Id).SingleAsync();
+                    ship.Frame = await _repositoryDbContext.ShipFrame.Where(x => x.ShipId == ship.Id).SingleAsync();
+                    ship.Frame.Requirements = await _repositoryDbContext.ShipRequirements.Where(x => x.Id == ship.Frame.RequirementsId).SingleAsync();
+                    ship.Reactor = await _repositoryDbContext.ShipReactor.Where(x => x.ShipId == ship.Id).SingleAsync();
+                    ship.Reactor.Requirements = await _repositoryDbContext.ShipRequirements.Where(x => x.Id == ship.Reactor.RequirementsId).SingleAsync();
+                    ship.Engine = await _repositoryDbContext.ShipEngine.Where(x => x.ShipId == ship.Id).SingleAsync();
+                    ship.Engine.Requirements = await _repositoryDbContext.ShipRequirements.Where(x => x.Id == ship.Engine.RequirementsId).SingleAsync();
+                    ship.Modules = await _repositoryDbContext.ShipModule.Where(x => x.ShipId == ship.Id).ToListAsync();
+                    foreach (ShipModule module in ship.Modules)
+                    {
+                        module.Requirements = await _repositoryDbContext.ShipRequirements.Where(x => x.Id == module.RequirementsId).SingleAsync();
+                    }
+
+                    ship.Mounts = await _repositoryDbContext.ShipMount.Where(x => x.ShipId == ship.Id).ToListAsync();
+                    foreach (ShipMount mount in ship.Mounts)
+                    {
+                        mount.Requirements = await _repositoryDbContext.ShipRequirements.Where(x => x.Id == mount.RequirementsId).SingleAsync();
+                    }
+
+                    ship.Registration = await _repositoryDbContext.ShipRegistration.Where(x => x.ShipId == ship.Id).SingleAsync();
+
+                    ship.Cargo = await _repositoryDbContext.ShipCargo.Where(x => x.ShipId == ship.Id).SingleAsync();
+                    ship.Cargo.Inventory = await _repositoryDbContext.ShipCargoItem.Where(x => x.ShipCargoId == ship.Cargo.Id).ToListAsync();
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error loading ship {ship.Symbol}: {ex.Message}");
+                }
                 
-                .Include(x => x.Engine)
-                    .ThenInclude(x => x.Requirements)
+            }
 
-                .Include(x => x.Modules)
-                    .ThenInclude(x => x.Requirements)
 
-                .Include(x => x.Mounts)
-                    .ThenInclude(x => x.Requirements)
-
-                .Include(x => x.Registration)
-
-                .Include(x => x.Cargo)
-                    .ThenInclude(x => x.Inventory)
-                .ToListAsync();
-            
             _shipMemoryOnlyRepository.AddOrUpdateShips(ships.Select(s=>s.ToApiModel()).ToList());
 
             _shipMemoryOnlyRepository.IsLoaded = true;
@@ -147,15 +163,19 @@ internal class ShipDatabaseRepository : IShipRepository
     public async Task<bool> UpdateCargo(string shipSymbol, Api.Models.ShipCargo cargo)
     {
         bool updated = _shipMemoryOnlyRepository.UpdateCargo(shipSymbol, cargo);
+        Ship? newShip = _shipMemoryOnlyRepository.GetShip(shipSymbol)?.ToDbModel();
 
-        Ship? ship = await _repositoryDbContext.Ships.FirstOrDefaultAsync(s => s.Symbol == shipSymbol);
-        if (ship != null)
+        if(newShip!=null)
         {
-            ship.Cargo = cargo.ToDbModel();
-            _repositoryDbContext.Ships.Update(ship);
-            await _repositoryDbContext.SaveChangesAsync();
-            return true;
-        }
+            Ship? existingShip = await _repositoryDbContext.Ships.FirstOrDefaultAsync(s => s.Symbol == shipSymbol);
+            if (existingShip != null)
+            {                
+                _repositoryDbContext.Ships.Remove(existingShip);
+                _repositoryDbContext.Ships.Add(newShip);
+                await _repositoryDbContext.SaveChangesAsync();
+                return true;
+            }
+        }        
 
         return updated;
     }
@@ -164,14 +184,20 @@ internal class ShipDatabaseRepository : IShipRepository
     {
         bool updated = _shipMemoryOnlyRepository.UpdateCooldown(shipSymbol, cooldown);
 
-        Ship? ship = await _repositoryDbContext.Ships.FirstOrDefaultAsync(s => s.Symbol == shipSymbol);
-        if (ship != null)
+        Ship? newShip = _shipMemoryOnlyRepository.GetShip(shipSymbol)?.ToDbModel();
+
+        if(newShip != null)
         {
-            ship.Cooldown = cooldown.ToDbModel();
-            _repositoryDbContext.Ships.Update(ship);
-            await _repositoryDbContext.SaveChangesAsync();
-            return true;
+            Ship? existingShip = await _repositoryDbContext.Ships.FirstOrDefaultAsync(s => s.Symbol == shipSymbol);
+            if (existingShip != null)
+            {
+                _repositoryDbContext.Ships.Remove(existingShip);
+                _repositoryDbContext.Ships.Add(newShip);
+                await _repositoryDbContext.SaveChangesAsync();
+                return true;
+            }
         }
+        
         return updated;
     }
 
@@ -179,14 +205,18 @@ internal class ShipDatabaseRepository : IShipRepository
     {
         bool updated = _shipMemoryOnlyRepository.UpdateFuel(shipSymbol, fuel);
 
-        Ship? ship = await _repositoryDbContext.Ships.FirstOrDefaultAsync(s => s.Symbol == shipSymbol);
-        if (ship != null)
+        Ship? newShip = _shipMemoryOnlyRepository.GetShip(shipSymbol)?.ToDbModel();
+        if(newShip!=null)
         {
-            ship.Fuel = fuel.ToDbModel();
-            _repositoryDbContext.Ships.Update(ship);
-            await _repositoryDbContext.SaveChangesAsync();
-            return true;
-        }
+            Ship? existingShip = await _repositoryDbContext.Ships.FirstOrDefaultAsync(s => s.Symbol == shipSymbol);
+            if (existingShip != null)
+            {
+                _repositoryDbContext.Remove(existingShip);
+                _repositoryDbContext.Ships.Add(newShip);
+                await _repositoryDbContext.SaveChangesAsync();
+                return true;
+            }
+        }        
 
         return updated;
     }
@@ -194,15 +224,19 @@ internal class ShipDatabaseRepository : IShipRepository
     public async Task<bool> UpdateNav(string shipSymbol, Api.Models.ShipNav shipNav)
     {
         bool updated = _shipMemoryOnlyRepository.UpdateNav(shipSymbol, shipNav);
+        Ship? newShip = _shipMemoryOnlyRepository.GetShip(shipSymbol)?.ToDbModel();
 
-        Ship? ship = await _repositoryDbContext.Ships.FirstOrDefaultAsync(s => s.Symbol == shipSymbol);
-        if (ship != null)
+        if(newShip!=null)
         {
-            ship.Nav = shipNav.ToDbModel();
-            _repositoryDbContext.Ships.Update(ship);
-            await _repositoryDbContext.SaveChangesAsync();
-            return true;
-        }
+            Ship? existingShip = await _repositoryDbContext.Ships.FirstOrDefaultAsync(s => s.Symbol == shipSymbol);
+            if (existingShip != null)
+            {
+                _repositoryDbContext.Remove(existingShip);
+                _repositoryDbContext.Ships.Add(newShip);
+                await _repositoryDbContext.SaveChangesAsync();
+                return true;
+            }
+        }        
 
         return updated;
     }

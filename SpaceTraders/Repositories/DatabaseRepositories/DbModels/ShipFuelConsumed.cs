@@ -1,10 +1,15 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class ShipFuelConsumed
 {
     public int Id { get; set; }
     public int Amount { get; set; }
     public DateTime Timestamp { get; set; }
+
+    [ForeignKey(nameof(ShipFuel))]
+    public int ShipFuelId { get; set; }
 
     public SpaceTraders.Api.Models.ShipFuelConsumed ToApiModel()
     {

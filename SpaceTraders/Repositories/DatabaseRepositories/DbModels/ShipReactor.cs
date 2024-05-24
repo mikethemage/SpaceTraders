@@ -12,8 +12,14 @@ public class ShipReactor
     public double Integrity { get; set; }
     public int PowerOutput { get; set; }
 
-    [ForeignKey("ShipReactorId")]
+    
     public ShipRequirements Requirements { get; set; } = null!;
+
+    [ForeignKey(nameof(ShipRequirements))]
+    public int RequirementsId { get; set; }
+
+    [ForeignKey(nameof(Ship))]
+    public int ShipId { get; set; }
 
     public SpaceTraders.Api.Models.ShipReactor ToApiModel()
     {

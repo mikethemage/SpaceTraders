@@ -24,26 +24,47 @@ internal class ShipService : IShipService
         _agentService = agentService;
     }
 
+    private async Task EnsureAllShipInfoLoaded()
+    {
+        List<string> shipSymbols = await _shipRepository.GetAllShips();
+        foreach (string shipSymbol in shipSymbols)
+        {
+            if(!_shipInfoRepository.IsShipKnown(shipSymbol))
+            {
+                Ship? ship = await _shipRepository.GetShip(shipSymbol);
+                if(ship!=null)
+                {
+                    AddToShipInfo(ship);
+                }                
+            }
+        }
+    }
+
     public async Task AddOrUpdateShip(Ship ship)
     {
         await _shipRepository.AddOrUpdateShip(ship);
 
         if (!_shipInfoRepository.IsShipKnown(ship.Symbol))
         {
-            ShipInfoRole shipInfoRole = ShipInfoRole.None;
-            if (ship.Cargo.Capacity > 0 &&
-                ship.Mounts.Any(m => m.Symbol == "MOUNT_MINING_LASER_I" || m.Symbol == "MOUNT_MINING_LASER_II" || m.Symbol == "MOUNT_MINING_LASER_III"))
-            {
-                shipInfoRole = ShipInfoRole.Miner;
-            }
-
-            _shipInfoRepository.AddOrUpdateShipInfo(new ShipInfo
-            {
-                ShipSymbol = ship.Symbol,
-                LastUpdated = DateTime.UtcNow,
-                Role = shipInfoRole
-            });
+            AddToShipInfo(ship);
         }
+    }
+
+    private void AddToShipInfo(Ship ship)
+    {
+        ShipInfoRole shipInfoRole = ShipInfoRole.None;
+        if (ship.Cargo.Capacity > 0 &&
+            ship.Mounts.Any(m => m.Symbol == "MOUNT_MINING_LASER_I" || m.Symbol == "MOUNT_MINING_LASER_II" || m.Symbol == "MOUNT_MINING_LASER_III"))
+        {
+            shipInfoRole = ShipInfoRole.Miner;
+        }
+
+        _shipInfoRepository.AddOrUpdateShipInfo(new ShipInfo
+        {
+            ShipSymbol = ship.Symbol,
+            LastUpdated = DateTime.UtcNow,
+            Role = shipInfoRole
+        });
     }
 
     public async Task RemoveShip(string shipSymbol)
@@ -66,6 +87,10 @@ internal class ShipService : IShipService
         Ship? ship = await _shipRepository.GetShip(shipSymbol);
         if (ship != null)
         {
+            if (!_shipInfoRepository.IsShipKnown(shipSymbol))
+            {
+                AddToShipInfo(ship);
+            }
             return ship;
         }
         else if (_shipInfoRepository.IsShipKnown(shipSymbol))
@@ -118,6 +143,7 @@ internal class ShipService : IShipService
     public async Task<List<string>> GetAllMiningShips()
     {
         await EnsureAllShipsLoaded();
+        await EnsureAllShipInfoLoaded();
 
         return _shipInfoRepository.GetAllMiningShips();
     }

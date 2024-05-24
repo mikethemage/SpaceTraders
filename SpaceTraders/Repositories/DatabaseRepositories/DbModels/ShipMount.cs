@@ -11,8 +11,14 @@ public class ShipMount
     public int? Strength { get; set; }
     public List<string>? Deposits { get; set; } = null;
 
-    [ForeignKey("ShipMountId")]
+    
     public ShipRequirements Requirements { get; set; } = null!;
+
+    [ForeignKey(nameof(ShipRequirements))]
+    public int RequirementsId { get; set; }
+
+    [ForeignKey(nameof(Ship))]
+    public int ShipId { get; set; }
 
     public SpaceTraders.Api.Models.ShipMount ToApiModel()
     {

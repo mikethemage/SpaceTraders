@@ -11,8 +11,14 @@ public class ShipModule
     public int? Capacity { get; set; }
     public int? Range { get; set; }
 
-    [ForeignKey("ShipModuleId")]
+   
     public ShipRequirements Requirements { get; set; } = null!;
+
+    [ForeignKey(nameof(ShipRequirements))]
+    public int RequirementsId { get; set; }
+
+    [ForeignKey(nameof(Ship))]
+    public int ShipId { get; set; }
 
     public SpaceTraders.Api.Models.ShipModule ToApiModel()
     {

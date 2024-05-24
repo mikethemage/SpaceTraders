@@ -1,4 +1,6 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class ShipRegistration
 {
@@ -6,6 +8,9 @@ public class ShipRegistration
     public string Name { get; set; } = string.Empty;
     public string FactionSymbol { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
+
+    [ForeignKey(nameof(Ship))]
+    public int ShipId { get; set; }
 
     public SpaceTraders.Api.Models.ShipRegistration ToApiModel()
     {

@@ -33,4 +33,21 @@ public class RepositoryDbContext : DbContext
     public DbSet<Chart> Chart { get; set; }
     public DbSet<Ship> Ships { get; set; }
     public DbSet<ShipNav> ShipNav { get; set; }
+    public DbSet<ShipNavRoute> ShipNavRoute { get; set; }
+    public DbSet<ShipNavRouteWaypoint> ShipNavRouteWaypoint { get; set; }
+    public DbSet<ShipCrew> ShipCrew { get; set; }
+    public DbSet<ShipFuel> ShipFuel { get; set; }
+    public DbSet<ShipFuelConsumed> ShipFuelConsumed { get; set; }
+    public DbSet<Cooldown> Cooldown { get; set; }
+    public DbSet<ShipFrame> ShipFrame { get; set; }
+    public DbSet<ShipReactor> ShipReactor { get; set; }
+    public DbSet<ShipEngine> ShipEngine { get; set; }
+    public DbSet<ShipModule> ShipModule { get; set; }
+    public DbSet<ShipMount> ShipMount { get; set; }
+    public DbSet<ShipRequirements> ShipRequirements { get; set; }
+    public DbSet<ShipRegistration> ShipRegistration { get; set; }
+    public DbSet<ShipCargo> ShipCargo { get; set; }
+    public DbSet<ShipCargoItem> ShipCargoItem { get; set; }
+
+
 }

@@ -87,7 +87,7 @@ internal class Program
         builder.Services.AddTransient<IFactionService, FactionService>();
 
         builder.Services.AddDbContext<RepositoryDbContext>(options =>
-            options.UseSqlite("Data Source=SpaceTraders.db;")
+            options.UseSqlite("Data Source=SpaceTraders.db;foreign keys=true;")
             );
 
         using IHost host = builder.Build();

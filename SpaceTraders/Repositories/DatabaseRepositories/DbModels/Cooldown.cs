@@ -1,4 +1,6 @@
-﻿namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace SpaceTraders.Repositories.DatabaseRepositories.DbModels;
 
 public class Cooldown
 {
@@ -7,6 +9,9 @@ public class Cooldown
     public int TotalSeconds { get; set; }
     public int RemainingSeconds { get; set; }
     public DateTime Expiration { get; set; }
+
+    [ForeignKey(nameof(Ship))]
+    public int ShipId { get; set; }
 
     public SpaceTraders.Api.Models.Cooldown ToApiModel()
     {

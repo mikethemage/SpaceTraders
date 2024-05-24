@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using SpaceTraders.Repositories.DatabaseRepositories.DbContexts;
 
@@ -10,9 +11,11 @@ using SpaceTraders.Repositories.DatabaseRepositories.DbContexts;
 namespace SpaceTraders.Migrations
 {
     [DbContext(typeof(RepositoryDbContext))]
-    partial class RepositoryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240524093408_Complete migration of ships to database")]
+    partial class Completemigrationofshipstodatabase
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.4");
@@ -494,7 +497,7 @@ namespace SpaceTraders.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("RequirementsId")
+                    b.Property<int>("ShipEngineId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ShipId")
@@ -509,7 +512,7 @@ namespace SpaceTraders.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RequirementsId");
+                    b.HasIndex("ShipEngineId");
 
                     b.HasIndex("ShipId")
                         .IsUnique();
@@ -546,7 +549,7 @@ namespace SpaceTraders.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("RequirementsId")
+                    b.Property<int>("ShipFrameId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int>("ShipId")
@@ -558,7 +561,7 @@ namespace SpaceTraders.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RequirementsId");
+                    b.HasIndex("ShipFrameId");
 
                     b.HasIndex("ShipId")
                         .IsUnique();
@@ -632,10 +635,10 @@ namespace SpaceTraders.Migrations
                     b.Property<int?>("Range")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("RequirementsId")
+                    b.Property<int>("ShipId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ShipId")
+                    b.Property<int>("ShipModuleId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Symbol")
@@ -644,9 +647,9 @@ namespace SpaceTraders.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RequirementsId");
-
                     b.HasIndex("ShipId");
+
+                    b.HasIndex("ShipModuleId");
 
                     b.ToTable("ShipModule");
                 });
@@ -667,10 +670,10 @@ namespace SpaceTraders.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
-                    b.Property<int>("RequirementsId")
+                    b.Property<int>("ShipId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ShipId")
+                    b.Property<int>("ShipMountId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("Strength")
@@ -682,9 +685,9 @@ namespace SpaceTraders.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RequirementsId");
-
                     b.HasIndex("ShipId");
+
+                    b.HasIndex("ShipMountId");
 
                     b.ToTable("ShipMount");
                 });
@@ -761,6 +764,12 @@ namespace SpaceTraders.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
+                    b.Property<int?>("DestinationId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("OriginId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("Symbol")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -807,10 +816,10 @@ namespace SpaceTraders.Migrations
                     b.Property<int>("PowerOutput")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("RequirementsId")
+                    b.Property<int>("ShipId")
                         .HasColumnType("INTEGER");
 
-                    b.Property<int>("ShipId")
+                    b.Property<int>("ShipReactorId")
                         .HasColumnType("INTEGER");
 
                     b.Property<string>("Symbol")
@@ -819,10 +828,10 @@ namespace SpaceTraders.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RequirementsId");
-
                     b.HasIndex("ShipId")
                         .IsUnique();
+
+                    b.HasIndex("ShipReactorId");
 
                     b.ToTable("ShipReactor");
                 });
@@ -866,6 +875,21 @@ namespace SpaceTraders.Migrations
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("Power")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ShipEngineId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ShipFrameId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ShipModuleId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ShipMountId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ShipReactorId")
                         .HasColumnType("INTEGER");
 
                     b.Property<int?>("Slots")
@@ -1165,7 +1189,7 @@ namespace SpaceTraders.Migrations
                 {
                     b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipRequirements", "Requirements")
                         .WithMany()
-                        .HasForeignKey("RequirementsId")
+                        .HasForeignKey("ShipEngineId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1182,7 +1206,7 @@ namespace SpaceTraders.Migrations
                 {
                     b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipRequirements", "Requirements")
                         .WithMany()
-                        .HasForeignKey("RequirementsId")
+                        .HasForeignKey("ShipFrameId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1215,15 +1239,15 @@ namespace SpaceTraders.Migrations
 
             modelBuilder.Entity("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipModule", b =>
                 {
-                    b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipRequirements", "Requirements")
-                        .WithMany()
-                        .HasForeignKey("RequirementsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.Ship", null)
                         .WithMany("Modules")
                         .HasForeignKey("ShipId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipRequirements", "Requirements")
+                        .WithMany()
+                        .HasForeignKey("ShipModuleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1232,15 +1256,15 @@ namespace SpaceTraders.Migrations
 
             modelBuilder.Entity("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipMount", b =>
                 {
-                    b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipRequirements", "Requirements")
-                        .WithMany()
-                        .HasForeignKey("RequirementsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.Ship", null)
                         .WithMany("Mounts")
                         .HasForeignKey("ShipId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipRequirements", "Requirements")
+                        .WithMany()
+                        .HasForeignKey("ShipMountId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -1283,15 +1307,15 @@ namespace SpaceTraders.Migrations
 
             modelBuilder.Entity("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipReactor", b =>
                 {
-                    b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipRequirements", "Requirements")
-                        .WithMany()
-                        .HasForeignKey("RequirementsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.Ship", null)
                         .WithOne("Reactor")
                         .HasForeignKey("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipReactor", "ShipId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SpaceTraders.Repositories.DatabaseRepositories.DbModels.ShipRequirements", "Requirements")
+                        .WithMany()
+                        .HasForeignKey("ShipReactorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
