@@ -1,0 +1,12 @@
+
+POST https://api.spacetraders.io/v2/register
+Content-Type: application/json
+
+{
+    "symbol": "mikethemage1",
+    "faction": "COSMIC"
+}
+
+###
+GET https://api.spacetraders.io/v2/my/agent
+Authorization: Bearer {{ApiKeyDev}}

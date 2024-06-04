@@ -7,6 +7,7 @@
     <Nullable>enable</Nullable>
     <Configurations>Debug;Release</Configurations>
     <Platforms>AnyCPU;x64</Platforms>
+    <UserSecretsId>afcf7923-203e-4c8f-b37f-c5d8244a6bc1</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
